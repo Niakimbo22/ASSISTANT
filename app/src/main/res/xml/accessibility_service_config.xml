@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Config du service d'accessibilité NicoAssistant Music.
+     On écoute les changements d'état/contenu des fenêtres pour piloter l'UI
+     de l'appli musique, et on demande la récupération du contenu des fenêtres. -->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows|flagReportViewIds"
+    android:canRetrieveWindowContent="true"
+    android:description="@string/a11y_service_description"
+    android:notificationTimeout="100" />

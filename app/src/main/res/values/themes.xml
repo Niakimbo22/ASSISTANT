@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Thème hôte de l'activité. L'UI réelle est fournie par Compose Material3 ;
+         ce thème sert surtout d'écran de démarrage / conteneur. -->
+    <style name="Theme.NicoAssistant" parent="android:Theme.Material.NoActionBar" />
+</resources>
