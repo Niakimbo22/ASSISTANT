@@ -10,3 +10,6 @@
 local.properties
 app/build/
 build/
+
+# Dossier de travail (docs temporaires, briefings) — hors code applicatif
+scratchpad/
