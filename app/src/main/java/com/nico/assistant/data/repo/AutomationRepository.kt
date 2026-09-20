@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.map
  * ni les entités Room ni le DAO ne sortent d'ici (le journal d'exécution excepté,
  * qui est déjà un objet plat).
  */
-class AutomationRepository(private val db: AppDatabase) {
+class AutomationRepository(private val db: AppDatabase) : AutomationSource {
 
     private val dao = db.automationDao()
     private val logDao = db.executionLogDao()
@@ -31,7 +31,7 @@ class AutomationRepository(private val db: AppDatabase) {
     suspend fun getById(id: String): Automation? = dao.getById(id)?.toDomain()
 
     /** Lecture ponctuelle utilisée par le MatchEngine à chaque phrase entendue (lot 2). */
-    suspend fun enabledAutomations(): List<Automation> =
+    override suspend fun enabledAutomations(): List<Automation> =
         dao.getEnabled().map { row -> row.toDomain() }
 
     suspend fun count(): Int = dao.count()
