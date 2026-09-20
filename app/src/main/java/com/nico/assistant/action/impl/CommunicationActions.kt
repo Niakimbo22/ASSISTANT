@@ -116,7 +116,7 @@ class SendSmsAction : Action {
             label = "Envoyer directement",
             type = ParamType.TOGGLE,
             required = false,
-            default = "false",
+            default = TOGGLE_OFF,
             hint = "Sans confirmation, si l'autorisation SMS est accordée"
         )
     )
@@ -126,7 +126,7 @@ class SendSmsAction : Action {
         val number = CallNumberAction.resolveNumber(ctx, params)
             ?: return CallNumberAction.numberFailure(ctx, params)
 
-        val direct = params[PARAM_DIRECT]?.trim().equals("true", ignoreCase = true)
+        val direct = params[PARAM_DIRECT]?.trim()?.lowercase().orEmpty() in TOGGLE_ON_VALUES
         if (direct && ctx.context.hasPermission(Manifest.permission.SEND_SMS)) {
             val sent = sendDirectly(ctx, number, message)
             if (sent is ActionResult.Success) return sent
@@ -159,5 +159,9 @@ class SendSmsAction : Action {
     companion object {
         const val PARAM_MESSAGE = "message"
         const val PARAM_DIRECT = "direct"
+
+        /** Même vocabulaire que les bascules système, pour que l'UI n'ait qu'un composant. */
+        const val TOGGLE_OFF = "off"
+        private val TOGGLE_ON_VALUES = setOf("on", "true", "1")
     }
 }

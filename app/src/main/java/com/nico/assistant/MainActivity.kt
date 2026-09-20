@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,6 +20,10 @@ import com.nico.assistant.ui.AssistantViewModel
 import com.nico.assistant.ui.MainScreen
 import com.nico.assistant.ui.NicoAssistantTheme
 import com.nico.assistant.ui.SettingsScreen
+import com.nico.assistant.ui.editor.EditorScreen
+import com.nico.assistant.ui.editor.EditorViewModel
+import com.nico.assistant.ui.list.AutomationListScreen
+import com.nico.assistant.ui.list.AutomationListViewModel
 
 /**
  * Activité unique de l'appli (Compose). Elle est lancée par le double-appui sur
@@ -37,13 +42,20 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/** Navigation minimale entre l'écran principal et les réglages. */
-private enum class Screen { MAIN, SETTINGS }
+/**
+ * Navigation minimale. L'accueil est désormais la liste des automatisations : c'est le
+ * catalogue qui remplace les commandes codées en dur de la V1.
+ *
+ * VOICE reste l'écran d'écoute de la V1 ; il sera rebranché sur le moteur V2 au lot 5.
+ */
+private enum class Screen { AUTOMATIONS, EDITOR, VOICE, SETTINGS }
 
 @Composable
 private fun AppRoot() {
     val vm: AssistantViewModel = viewModel()
-    var screen by remember { mutableStateOf(Screen.MAIN) }
+    val listViewModel: AutomationListViewModel = viewModel()
+    val editorViewModel: EditorViewModel = viewModel()
+    var screen by remember { mutableStateOf(Screen.AUTOMATIONS) }
 
     // On demande d'emblée les permissions runtime nécessaires, avec un motif
     // implicite (micro pour écouter, contacts + téléphone pour les appels).
@@ -80,13 +92,39 @@ private fun AppRoot() {
     }
 
     when (screen) {
-        Screen.MAIN -> MainScreen(
-            vm = vm,
+        Screen.AUTOMATIONS -> AutomationListScreen(
+            viewModel = listViewModel,
+            onCreate = {
+                editorViewModel.load(null)
+                screen = Screen.EDITOR
+            },
+            onEdit = { automation ->
+                editorViewModel.load(automation.id)
+                screen = Screen.EDITOR
+            },
+            onOpenVoice = { screen = Screen.VOICE },
             onOpenSettings = { screen = Screen.SETTINGS },
         )
+
+        Screen.EDITOR -> {
+            BackHandler { screen = Screen.AUTOMATIONS }
+            EditorScreen(
+                viewModel = editorViewModel,
+                onBack = { screen = Screen.AUTOMATIONS },
+            )
+        }
+
+        Screen.VOICE -> {
+            BackHandler { screen = Screen.AUTOMATIONS }
+            MainScreen(
+                vm = vm,
+                onOpenSettings = { screen = Screen.SETTINGS },
+            )
+        }
+
         Screen.SETTINGS -> SettingsScreen(
             vm = vm,
-            onBack = { screen = Screen.MAIN },
+            onBack = { screen = Screen.AUTOMATIONS },
         )
     }
 }
