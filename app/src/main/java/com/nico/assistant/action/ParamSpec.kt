@@ -23,6 +23,8 @@ enum class ParamType {
     /** Liste des apps réellement installées — jamais de paquet codé en dur. */
     APP_PICKER,
     CONTACT_PICKER,
+    /** Liste des automatisations existantes, pour la composition. */
+    AUTOMATION_PICKER,
     URL,
     DURATION,
     /** on / off / bascule */

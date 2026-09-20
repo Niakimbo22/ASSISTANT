@@ -19,22 +19,26 @@ data class ExecutionReport(
     val outcomes: List<ActionOutcome>,
     /** Vrai si une action critique a échoué et a interrompu la chaîne. */
     val stoppedEarly: Boolean = false,
-    val slots: Map<String, String> = emptyMap()
+    val slots: Map<String, String> = emptyMap(),
+    /** Renseigné quand une condition a empêché la chaîne de démarrer (spec §3). */
+    val blockedBy: String? = null
 ) {
     val total: Int get() = automation.actions.size
     val succeeded: Int get() = outcomes.count { it.succeeded }
     val failures: List<ActionOutcome> get() = outcomes.filterNot { it.succeeded }
-    val success: Boolean get() = !stoppedEarly && failures.isEmpty()
+    val success: Boolean get() = blockedBy == null && !stoppedEarly && failures.isEmpty()
 
     /** Première raison d'échec, celle qu'on montre à l'utilisateur. */
     val errorMessage: String?
-        get() = failures.firstOrNull()?.result?.let { (it as? ActionResult.Failure)?.reason }
+        get() = blockedBy?.let { "Condition non remplie : $it" }
+            ?: failures.firstOrNull()?.result?.let { (it as? ActionResult.Failure)?.reason }
 
     /**
      * Texte prononcé après l'exécution (spec §8.4) : le feedback personnalisé s'il existe,
      * sinon un message généré qui dit franchement ce qui a échoué.
      */
     fun feedbackText(): String {
+        blockedBy?.let { return "${automation.name} : $it non remplie" }
         automation.feedbackText?.takeIf { it.isNotBlank() }?.let {
             return SlotResolver.resolve(it, slots)
         }

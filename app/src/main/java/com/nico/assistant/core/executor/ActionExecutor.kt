@@ -7,6 +7,7 @@ import com.nico.assistant.action.ActionRegistry
 import com.nico.assistant.action.ActionResult
 import com.nico.assistant.action.ActionType
 import com.nico.assistant.action.Backend
+import com.nico.assistant.core.condition.ConditionEvaluator
 import com.nico.assistant.data.model.Automation
 import com.nico.assistant.data.repo.AutomationRepository
 import com.nico.assistant.shizuku.ShizukuGateway
@@ -49,17 +50,49 @@ class ActionExecutor(
     /** Indirection volontaire : elle permet d'exécuter des chaînes factices dans les tests. */
     private val lookup: (ActionType) -> Action? = ActionRegistry::find,
     private val availability: BackendAvailability = BackendAvailability.forShizuku(shizuku),
+    private val conditions: ConditionEvaluator = ConditionEvaluator(appContext),
     private val clock: () -> Long = System::currentTimeMillis
-) {
+) : SubAutomationRunner {
 
+    /**
+     * @param checkConditions faux pour le bouton « Tester maintenant » : un test manuel
+     * doit se dérouler même hors de la plage horaire prévue.
+     */
     suspend fun run(
         automation: Automation,
         slots: Map<String, String> = emptyMap(),
         heardText: String = "",
-        matchScore: Float = 1f
+        matchScore: Float = 1f,
+        checkConditions: Boolean = true,
+        depth: Int = 0,
+        visited: Set<String> = emptySet()
     ): ExecutionReport {
         val allSlots = SystemSlots.current(appContext, clock()) + slots
-        val ctx = ExecutionContext(appContext, allSlots, speaker, shizuku)
+
+        if (checkConditions) {
+            val verdict = conditions.evaluate(automation.conditions)
+            if (!verdict.satisfied) {
+                Log.i(TAG, "${automation.name} bloquée par « ${verdict.blockedBy} »")
+                val blocked = ExecutionReport(
+                    automation = automation,
+                    outcomes = emptyList(),
+                    slots = allSlots,
+                    blockedBy = verdict.blockedBy
+                )
+                journal(blocked, heardText, matchScore)
+                return blocked
+            }
+        }
+
+        val ctx = ExecutionContext(
+            context = appContext,
+            slots = allSlots,
+            speaker = speaker,
+            shizuku = shizuku,
+            subRunner = this,
+            depth = depth,
+            visited = visited + automation.id
+        )
 
         val outcomes = mutableListOf<ActionOutcome>()
         var stoppedEarly = false
@@ -113,6 +146,33 @@ class ActionExecutor(
         }
     }
 
+    /**
+     * Appel d'une automatisation par une autre, avec les deux garde-fous de la spec §5.3 :
+     * profondeur maximale et détection de cycle.
+     */
+    override suspend fun run(automationId: String, ctx: ExecutionContext): SubRunOutcome {
+        if (ctx.depth + 1 > MAX_DEPTH) {
+            return SubRunOutcome(false, "Composition trop profonde (max $MAX_DEPTH)")
+        }
+        if (automationId in ctx.visited) {
+            return SubRunOutcome(false, "Boucle détectée sur cette automatisation")
+        }
+        val repo = repository ?: return SubRunOutcome(false, "Base indisponible")
+        val target = repo.getById(automationId)
+            ?: return SubRunOutcome(false, "Automatisation introuvable")
+
+        val report = run(
+            automation = target,
+            slots = ctx.slots,
+            heardText = "",
+            matchScore = 1f,
+            depth = ctx.depth + 1,
+            visited = ctx.visited
+        )
+        // On remonte la cause réelle : sinon une chaîne imbriquée ne dit que « a échoué ».
+        return SubRunOutcome(report.success, report.errorMessage ?: report.feedbackText())
+    }
+
     private suspend fun journal(report: ExecutionReport, heardText: String, matchScore: Float) {
         val repo = repository ?: return
         val now = clock()
@@ -124,5 +184,8 @@ class ActionExecutor(
 
     private companion object {
         const val TAG = "NICO_EXEC"
+
+        /** Protection anti-boucle : profondeur maximale de composition (spec §5.3). */
+        const val MAX_DEPTH = 5
     }
 }

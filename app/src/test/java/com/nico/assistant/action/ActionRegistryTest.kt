@@ -21,42 +21,19 @@ class ActionRegistryTest {
     }
 
     @Test
-    fun `les actions implementees sont exactement celles attendues`() {
-        val attendues = setOf(
-            // Lot 3
-            ActionType.LAUNCH_APP,
-            ActionType.OPEN_URL,
-            ActionType.SEARCH_WEB,
-            ActionType.CALL_NUMBER,
-            ActionType.SEND_SMS,
-            ActionType.SPEAK,
-            ActionType.VIBRATE,
-            ActionType.WAIT,
-            ActionType.SHOW_TOAST,
-            // Lot 5 : ce qu'il faut pour que les commandes V1 passent par les seeds
-            ActionType.PLAY_MUSIC_SEARCH,
-            ActionType.PLAY_MUSIC_UI,
-            ActionType.MEDIA_CONTROL,
-            ActionType.TOGGLE_TORCH,
-            // Lot 6 : système, via Shizuku quand il est prêt
-            ActionType.TOGGLE_WIFI,
-            ActionType.TOGGLE_BLUETOOTH,
-            ActionType.TOGGLE_DND,
-            ActionType.TOGGLE_AIRPLANE,
-            ActionType.TOGGLE_ROTATION,
-            ActionType.SET_BRIGHTNESS,
-            ActionType.SET_VOLUME,
-            ActionType.RUN_SHELL
-        )
-        assertEquals(attendues, ActionRegistry.implementedTypes)
+    fun `tout le catalogue declare est implemente`() {
+        // Règle d'or de la spec §5.4 : ajouter un type sans sa classe est un bug.
+        assertEquals(ActionType.entries.toSet(), ActionRegistry.implementedTypes)
+        assertEquals(ActionType.entries.size, ActionRegistry.all.size)
     }
 
     @Test
-    fun `un type pas encore implemente ne fait pas planter le registre`() {
-        // SET_TIMER arrive au lot 7 : le registre doit l'ignorer sans broncher.
-        assertNull(ActionRegistry.find(ActionType.SET_TIMER))
-        assertFalse(ActionRegistry.isImplemented(ActionType.SET_TIMER))
-        assertNotNull(ActionRegistry.find(ActionType.SPEAK))
+    fun `chaque type se retrouve par son enum`() {
+        for (type in ActionType.entries) {
+            assertNotNull("$type introuvable", ActionRegistry.find(type))
+            assertTrue(ActionRegistry.isImplemented(type))
+        }
+        assertFalse(ActionRegistry.all.any { it.label.isBlank() })
     }
 
     @Test

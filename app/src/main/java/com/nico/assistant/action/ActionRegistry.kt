@@ -1,7 +1,12 @@
 package com.nico.assistant.action
 
 import com.nico.assistant.action.impl.CallNumberAction
+import com.nico.assistant.action.impl.CopyToClipboardAction
+import com.nico.assistant.action.impl.CreateNoteAction
 import com.nico.assistant.action.impl.LaunchAppAction
+import com.nico.assistant.action.impl.NavigateToAction
+import com.nico.assistant.action.impl.OpenSettingsAction
+import com.nico.assistant.action.impl.OpenWhatsAppChatAction
 import com.nico.assistant.action.impl.MediaControlAction
 import com.nico.assistant.action.impl.OpenUrlAction
 import com.nico.assistant.action.impl.PlayMusicSearchAction
@@ -9,9 +14,14 @@ import com.nico.assistant.action.impl.PlayMusicUiAction
 import com.nico.assistant.action.impl.SearchWebAction
 import com.nico.assistant.action.impl.SendSmsAction
 import com.nico.assistant.action.impl.ShowToastAction
+import com.nico.assistant.action.impl.RunAutomationAction
 import com.nico.assistant.action.impl.RunShellAction
+import com.nico.assistant.action.impl.SendIntentAction
+import com.nico.assistant.action.impl.SetAlarmAction
 import com.nico.assistant.action.impl.SetBrightnessAction
+import com.nico.assistant.action.impl.SetTimerAction
 import com.nico.assistant.action.impl.SetVolumeAction
+import com.nico.assistant.action.impl.ShareTextAction
 import com.nico.assistant.action.impl.SpeakAction
 import com.nico.assistant.action.impl.ToggleAirplaneAction
 import com.nico.assistant.action.impl.ToggleBluetoothAction
@@ -34,9 +44,14 @@ object ActionRegistry {
         // INTENT
         LaunchAppAction(),
         OpenUrlAction(),
+        OpenSettingsAction(),
         SearchWebAction(),
+        NavigateToAction(),
+        SendIntentAction(),
         CallNumberAction(),
         SendSmsAction(),
+        ShareTextAction(),
+        OpenWhatsAppChatAction(),
         PlayMusicSearchAction(),
         // ACCESSIBILITY
         PlayMusicUiAction(),
@@ -55,7 +70,12 @@ object ActionRegistry {
         SpeakAction(),
         VibrateAction(),
         WaitAction(),
-        ShowToastAction()
+        ShowToastAction(),
+        SetTimerAction(),
+        SetAlarmAction(),
+        CreateNoteAction(),
+        CopyToClipboardAction(),
+        RunAutomationAction()
     ).associateBy { it.type }
 
     /** Catalogue trié comme le sélecteur d'action l'affiche. */

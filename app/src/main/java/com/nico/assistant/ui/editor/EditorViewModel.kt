@@ -104,7 +104,12 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             _running.value = true
             try {
-                _testReport.value = executor.run(_draft.value.automation, heardText = "Test manuel")
+                // Un test manuel doit se dérouler même hors de la plage horaire prévue.
+                _testReport.value = executor.run(
+                    automation = _draft.value.automation,
+                    heardText = "Test manuel",
+                    checkConditions = false
+                )
             } finally {
                 _running.value = false
             }

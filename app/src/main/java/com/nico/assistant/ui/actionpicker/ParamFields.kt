@@ -24,6 +24,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +38,7 @@ import com.nico.assistant.action.ParamSpec
 import com.nico.assistant.action.ParamType
 import com.nico.assistant.apps.AppEntry
 import com.nico.assistant.apps.AppRepository
+import com.nico.assistant.data.repo.AutomationRepository
 
 /**
  * Le champ correspondant à un [ParamSpec]. **Aucun formulaire n'est écrit à la main** :
@@ -54,6 +56,7 @@ fun ParamField(
             ParamType.ENUM -> EnumField(spec, value, onValueChange)
             ParamType.TOGGLE -> ToggleField(spec, value, onValueChange)
             ParamType.APP_PICKER -> AppPickerField(spec, value, onValueChange)
+            ParamType.AUTOMATION_PICKER -> AutomationPickerField(spec, value, onValueChange)
             ParamType.NUMBER, ParamType.DURATION ->
                 PlainTextField(spec, value, KeyboardType.Number, onValueChange)
             else -> PlainTextField(spec, value, KeyboardType.Text, onValueChange)
@@ -159,6 +162,21 @@ private fun ToggleField(spec: ParamSpec, value: String, onValueChange: (String) 
             )
         }
     }
+}
+
+/** Les automatisations existantes, pour la composition (RUN_AUTOMATION). */
+@Composable
+private fun AutomationPickerField(spec: ParamSpec, value: String, onValueChange: (String) -> Unit) {
+    val context = LocalContext.current
+    val automations by remember { AutomationRepository.from(context).observeAll() }
+        .collectAsState(initial = emptyList())
+
+    DropdownField(
+        label = spec.label,
+        display = automations.firstOrNull { it.id == value }?.name ?: "À choisir",
+        options = automations.map { it.id to it.name },
+        onPick = onValueChange
+    )
 }
 
 @Composable

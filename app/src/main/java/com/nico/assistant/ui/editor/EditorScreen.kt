@@ -124,6 +124,13 @@ fun EditorScreen(
             )
             MatchModeField(draft.matchMode, viewModel::setMatchMode)
 
+            SectionTitle("Seulement si (optionnel)")
+            ConditionSection(
+                conditions = draft.conditions,
+                onAdd = viewModel::addCondition,
+                onRemove = viewModel::removeCondition
+            )
+
             SectionTitle("Alors")
             ActionChain(
                 actions = draft.actions,
