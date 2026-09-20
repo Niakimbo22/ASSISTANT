@@ -32,6 +32,13 @@ class RunAutomationAction : Action {
         )
     )
 
+    /**
+     * Aucun délai maximum ici : la chaîne appelée applique déjà le sien à chacune de ses
+     * actions, et une composition légitime — avec un WAIT, par exemple — dépasse
+     * largement les dix secondes d'une action isolée.
+     */
+    override fun timeoutMs(params: Map<String, String>): Long = Action.NO_TIMEOUT
+
     override suspend fun execute(ctx: ExecutionContext, params: Map<String, String>): ActionResult {
         val id = params.required(PARAM_AUTOMATION_ID)
             ?: return ActionResult.Failure("Aucune automatisation choisie")

@@ -33,7 +33,7 @@ interface Action {
 
     /**
      * Délai au-delà duquel l'action est abandonnée. Une action bloquée ne doit jamais
-     * figer la chaîne ; seule `WAIT` a besoin de repousser cette limite.
+     * figer la chaîne ; `WAIT` repousse cette limite, et [NO_TIMEOUT] la retire.
      */
     fun timeoutMs(params: Map<String, String>): Long = DEFAULT_TIMEOUT_MS
 
@@ -42,6 +42,12 @@ interface Action {
 
     companion object {
         const val DEFAULT_TIMEOUT_MS = 10_000L
+
+        /**
+         * Pas de délai maximum. Réservé aux actions qui en délèguent un à autre chose :
+         * une chaîne appelée applique déjà le sien à chacune de ses propres actions.
+         */
+        const val NO_TIMEOUT = 0L
     }
 }
 

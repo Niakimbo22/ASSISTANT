@@ -128,6 +128,33 @@ class ActionExecutorTest {
     }
 
     @Test
+    fun `une action peut renoncer au delai maximum`() = runTest {
+        // Sans cette échappatoire, une chaîne appelée par RUN_AUTOMATION serait abandonnée
+        // au bout de dix secondes, quel que soit le temps que prennent ses propres actions.
+        val executor = executor { requested ->
+            object : Action {
+                override val type: ActionType = requested
+                override val backend: Backend = Backend.INTERNAL
+                override val label: String = requested.name
+                override val category: ActionCategory = ActionCategory.UTILITAIRES
+                override val paramsSchema: List<ParamSpec> = emptyList()
+                override fun timeoutMs(params: Map<String, String>): Long = Action.NO_TIMEOUT
+                override suspend fun execute(
+                    ctx: ExecutionContext,
+                    params: Map<String, String>
+                ): ActionResult {
+                    delay(60_000)
+                    return ActionResult.Success()
+                }
+            }
+        }
+
+        val report = executor.run(automation(ActionSpec(type = ActionType.SPEAK)))
+
+        assertTrue(report.errorMessage.orEmpty(), report.success)
+    }
+
+    @Test
     fun `une action qui leve une exception est rattrapee`() = runTest {
         val executor = executor { type -> fake(type) { _, _ -> error("boum") } }
 

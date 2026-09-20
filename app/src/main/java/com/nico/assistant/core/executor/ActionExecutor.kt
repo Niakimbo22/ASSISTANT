@@ -134,8 +134,11 @@ class ActionExecutor(
 
         val resolved = SlotResolver.resolveAll(params, slots)
 
+        val budget = action.timeoutMs(resolved)
+
         return try {
-            withTimeout(action.timeoutMs(resolved)) { action.execute(ctx, resolved) }
+            if (budget <= 0) action.execute(ctx, resolved)
+            else withTimeout(budget) { action.execute(ctx, resolved) }
         } catch (timeout: TimeoutCancellationException) {
             ActionResult.Failure("${action.label} n'a pas répondu à temps")
         } catch (cancellation: CancellationException) {
