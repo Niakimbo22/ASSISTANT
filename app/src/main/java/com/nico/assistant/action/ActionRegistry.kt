@@ -9,8 +9,16 @@ import com.nico.assistant.action.impl.PlayMusicUiAction
 import com.nico.assistant.action.impl.SearchWebAction
 import com.nico.assistant.action.impl.SendSmsAction
 import com.nico.assistant.action.impl.ShowToastAction
+import com.nico.assistant.action.impl.RunShellAction
+import com.nico.assistant.action.impl.SetBrightnessAction
+import com.nico.assistant.action.impl.SetVolumeAction
 import com.nico.assistant.action.impl.SpeakAction
+import com.nico.assistant.action.impl.ToggleAirplaneAction
+import com.nico.assistant.action.impl.ToggleBluetoothAction
+import com.nico.assistant.action.impl.ToggleDndAction
+import com.nico.assistant.action.impl.ToggleRotationAction
 import com.nico.assistant.action.impl.ToggleTorchAction
+import com.nico.assistant.action.impl.ToggleWifiAction
 import com.nico.assistant.action.impl.VibrateAction
 import com.nico.assistant.action.impl.WaitAction
 
@@ -32,9 +40,18 @@ object ActionRegistry {
         PlayMusicSearchAction(),
         // ACCESSIBILITY
         PlayMusicUiAction(),
+        // SHIZUKU, avec repli quand il n'est pas prêt
+        ToggleWifiAction(),
+        ToggleBluetoothAction(),
+        ToggleDndAction(),
+        ToggleAirplaneAction(),
+        ToggleRotationAction(),
+        SetBrightnessAction(),
+        RunShellAction(),
         // INTERNAL
         MediaControlAction(),
         ToggleTorchAction(),
+        SetVolumeAction(),
         SpeakAction(),
         VibrateAction(),
         WaitAction(),

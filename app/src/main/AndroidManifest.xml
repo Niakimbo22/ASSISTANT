@@ -12,6 +12,13 @@
          sinon l'app de messagerie s'ouvre pré-remplie et rien n'est envoyé sans lui. -->
     <uses-permission android:name="android.permission.SEND_SMS" />
 
+    <!-- Lecture d'état pour les bascules « toggle », et replis sans Shizuku. -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
+
     <!-- Nécessaire (Android 11+) pour énumérer et lancer TOUTES les applis,
          y compris l'APK RVX sideloadé au nom de paquet inconnu. -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
@@ -63,6 +70,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Shizuku : accès aux API système de niveau ADB, sans root. -->
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:multiprocess="false"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
 
         <!-- Service d'accessibilité : pilote l'UI de l'appli musique (stratégie B). -->
         <service

@@ -9,12 +9,13 @@ import com.nico.assistant.action.ActionType
 import com.nico.assistant.action.Backend
 import com.nico.assistant.data.model.Automation
 import com.nico.assistant.data.repo.AutomationRepository
+import com.nico.assistant.shizuku.ShizukuGateway
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 
-/** Ce que l'appareil sait faire à cet instant : Shizuku brancha ce verrou au lot 6. */
+/** Ce que l'appareil sait faire à cet instant. */
 fun interface BackendAvailability {
     fun isAvailable(backend: Backend): Boolean
 
@@ -22,6 +23,14 @@ fun interface BackendAvailability {
         /** Sans Shizuku ni service d'accessibilité, seuls les intents et l'interne marchent. */
         val INTENT_AND_INTERNAL = BackendAvailability {
             it == Backend.INTENT || it == Backend.INTERNAL
+        }
+
+        /**
+         * Seul Shizuku se vérifie d'avance. Le service d'accessibilité, lui, dépend de
+         * l'action précise : c'est elle qui le contrôle au moment d'agir.
+         */
+        fun forShizuku(gateway: ShizukuGateway) = BackendAvailability { backend ->
+            backend != Backend.SHIZUKU || gateway.isReady()
         }
     }
 }
@@ -36,9 +45,10 @@ class ActionExecutor(
     private val appContext: Context,
     private val speaker: Speaker = Speaker.SILENT,
     private val repository: AutomationRepository? = null,
+    private val shizuku: ShizukuGateway = ShizukuGateway.UNAVAILABLE,
     /** Indirection volontaire : elle permet d'exécuter des chaînes factices dans les tests. */
     private val lookup: (ActionType) -> Action? = ActionRegistry::find,
-    private val availability: BackendAvailability = BackendAvailability.INTENT_AND_INTERNAL,
+    private val availability: BackendAvailability = BackendAvailability.forShizuku(shizuku),
     private val clock: () -> Long = System::currentTimeMillis
 ) {
 
@@ -49,7 +59,7 @@ class ActionExecutor(
         matchScore: Float = 1f
     ): ExecutionReport {
         val allSlots = SystemSlots.current(appContext, clock()) + slots
-        val ctx = ExecutionContext(appContext, allSlots, speaker)
+        val ctx = ExecutionContext(appContext, allSlots, speaker, shizuku)
 
         val outcomes = mutableListOf<ActionOutcome>()
         var stoppedEarly = false
@@ -84,7 +94,8 @@ class ActionExecutor(
         if (action == null) {
             return ActionResult.Failure("Action non implémentée : $typeName", recoverable = false)
         }
-        if (!availability.isAvailable(action.backend)) {
+        // Une action qui sait se rabattre a le droit d'essayer même sans son backend.
+        if (!availability.isAvailable(action.backend) && !action.hasFallback) {
             return ActionResult.Failure("${action.backend} indisponible")
         }
 

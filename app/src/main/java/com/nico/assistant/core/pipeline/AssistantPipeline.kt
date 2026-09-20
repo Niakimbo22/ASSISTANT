@@ -12,6 +12,7 @@ import com.nico.assistant.core.stt.SpeechEvent
 import com.nico.assistant.core.stt.SpeechManager
 import com.nico.assistant.data.db.ExecutionLogEntity
 import com.nico.assistant.data.repo.AutomationRepository
+import com.nico.assistant.shizuku.ShizukuManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -168,7 +169,8 @@ class AssistantPipeline(
                 executor = ActionExecutor(
                     appContext = context.applicationContext,
                     speaker = speaker,
-                    repository = repository
+                    repository = repository,
+                    shizuku = ShizukuManager.shared()
                 ),
                 repository = repository,
                 speaker = speaker

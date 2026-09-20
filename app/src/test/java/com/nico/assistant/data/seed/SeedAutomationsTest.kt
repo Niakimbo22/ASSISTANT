@@ -135,23 +135,14 @@ class SeedAutomationsTest {
     }
 
     @Test
-    fun `les actions non encore implementees sont connues et attendues`() {
+    fun `toutes les actions des seeds sont implementees`() {
         val manquantes = seeds
             .flatMap { it.actions }
             .map { it.type }
             .filterNot { ActionRegistry.isImplemented(it) }
             .toSet()
 
-        // Ce qui reste dépend de Shizuku : c'est le lot 6, pas un oubli.
-        assertEquals(
-            setOf(
-                ActionType.TOGGLE_WIFI,
-                ActionType.TOGGLE_DND,
-                ActionType.SET_VOLUME,
-                ActionType.SET_BRIGHTNESS
-            ),
-            manquantes
-        )
+        assertEquals(emptySet<ActionType>(), manquantes)
     }
 
     private object EmptySource : AutomationSource {

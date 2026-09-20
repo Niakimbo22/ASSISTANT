@@ -10,6 +10,7 @@ import com.nico.assistant.core.condition.Condition
 import com.nico.assistant.data.db.MatchMode
 import com.nico.assistant.data.model.ActionSpec
 import com.nico.assistant.data.repo.AutomationRepository
+import com.nico.assistant.shizuku.ShizukuManager
 import com.nico.assistant.tts.TtsManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,7 +26,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         ActionExecutor(
             appContext = application,
             speaker = Speaker { text -> tts.speak(text) },
-            repository = repository
+            repository = repository,
+            shizuku = ShizukuManager.shared()
         )
     }
 

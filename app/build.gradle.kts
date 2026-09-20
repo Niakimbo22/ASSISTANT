@@ -74,6 +74,10 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
 
+    // Accès système sans root (lot 6)
+    implementation(libs.shizuku.api)
+    implementation(libs.shizuku.provider)
+
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core.ktx)

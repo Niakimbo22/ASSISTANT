@@ -26,6 +26,12 @@ interface Action {
     val description: String get() = ""
 
     /**
+     * L'action sait se rabattre sur autre chose si son backend manque (spec §6.5) :
+     * l'executor la laisse alors tenter sa chance plutôt que de refuser d'emblée.
+     */
+    val hasFallback: Boolean get() = false
+
+    /**
      * Délai au-delà duquel l'action est abandonnée. Une action bloquée ne doit jamais
      * figer la chaîne ; seule `WAIT` a besoin de repousser cette limite.
      */

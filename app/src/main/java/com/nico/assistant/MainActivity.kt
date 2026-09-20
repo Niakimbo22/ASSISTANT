@@ -23,6 +23,8 @@ import com.nico.assistant.ui.editor.EditorScreen
 import com.nico.assistant.ui.editor.EditorViewModel
 import com.nico.assistant.ui.list.AutomationListScreen
 import com.nico.assistant.ui.list.AutomationListViewModel
+import com.nico.assistant.ui.settings.SystemSettingsScreen
+import com.nico.assistant.ui.settings.SystemSettingsViewModel
 import com.nico.assistant.ui.voice.VoiceScreen
 import com.nico.assistant.ui.voice.VoiceViewModel
 
@@ -49,7 +51,7 @@ class MainActivity : ComponentActivity() {
  *
  * VOICE est l'écran d'écoute branché sur le pipeline V2.
  */
-private enum class Screen { AUTOMATIONS, EDITOR, VOICE, SETTINGS }
+private enum class Screen { AUTOMATIONS, EDITOR, VOICE, SYSTEM_SETTINGS, SETTINGS }
 
 @Composable
 private fun AppRoot() {
@@ -57,6 +59,7 @@ private fun AppRoot() {
     val listViewModel: AutomationListViewModel = viewModel()
     val editorViewModel: EditorViewModel = viewModel()
     val voiceViewModel: VoiceViewModel = viewModel()
+    val systemSettingsViewModel: SystemSettingsViewModel = viewModel()
     var screen by remember { mutableStateOf(Screen.AUTOMATIONS) }
 
     // On demande d'emblée les permissions runtime nécessaires, avec un motif
@@ -105,7 +108,7 @@ private fun AppRoot() {
                 screen = Screen.EDITOR
             },
             onOpenVoice = { screen = Screen.VOICE },
-            onOpenSettings = { screen = Screen.SETTINGS },
+            onOpenSettings = { screen = Screen.SYSTEM_SETTINGS },
         )
 
         Screen.EDITOR -> {
@@ -130,9 +133,18 @@ private fun AppRoot() {
             )
         }
 
+        Screen.SYSTEM_SETTINGS -> {
+            BackHandler { screen = Screen.AUTOMATIONS }
+            SystemSettingsScreen(
+                viewModel = systemSettingsViewModel,
+                onBack = { screen = Screen.AUTOMATIONS },
+                onOpenLegacySettings = { screen = Screen.SETTINGS },
+            )
+        }
+
         Screen.SETTINGS -> SettingsScreen(
             vm = vm,
-            onBack = { screen = Screen.AUTOMATIONS },
+            onBack = { screen = Screen.SYSTEM_SETTINGS },
         )
     }
 }

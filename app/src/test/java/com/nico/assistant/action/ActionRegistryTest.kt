@@ -37,15 +37,25 @@ class ActionRegistryTest {
             ActionType.PLAY_MUSIC_SEARCH,
             ActionType.PLAY_MUSIC_UI,
             ActionType.MEDIA_CONTROL,
-            ActionType.TOGGLE_TORCH
+            ActionType.TOGGLE_TORCH,
+            // Lot 6 : système, via Shizuku quand il est prêt
+            ActionType.TOGGLE_WIFI,
+            ActionType.TOGGLE_BLUETOOTH,
+            ActionType.TOGGLE_DND,
+            ActionType.TOGGLE_AIRPLANE,
+            ActionType.TOGGLE_ROTATION,
+            ActionType.SET_BRIGHTNESS,
+            ActionType.SET_VOLUME,
+            ActionType.RUN_SHELL
         )
         assertEquals(attendues, ActionRegistry.implementedTypes)
     }
 
     @Test
     fun `un type pas encore implemente ne fait pas planter le registre`() {
-        assertNull(ActionRegistry.find(ActionType.TOGGLE_WIFI))
-        assertFalse(ActionRegistry.isImplemented(ActionType.TOGGLE_WIFI))
+        // SET_TIMER arrive au lot 7 : le registre doit l'ignorer sans broncher.
+        assertNull(ActionRegistry.find(ActionType.SET_TIMER))
+        assertFalse(ActionRegistry.isImplemented(ActionType.SET_TIMER))
         assertNotNull(ActionRegistry.find(ActionType.SPEAK))
     }
 
@@ -57,6 +67,16 @@ class ActionRegistryTest {
             assertTrue("clé vide dans ${action.type}", keys.none { it.isBlank() })
             assertTrue("libellé vide pour ${action.type}", action.label.isNotBlank())
         }
+    }
+
+    @Test
+    fun `les actions systeme annoncent un repli, sauf la commande shell`() {
+        val shizuku = ActionRegistry.all.filter { it.backend == Backend.SHIZUKU }
+
+        assertTrue(shizuku.isNotEmpty())
+        assertTrue(shizuku.filter { it.type != ActionType.RUN_SHELL }.all { it.hasFallback })
+        // Une commande shell arbitraire n'a, elle, aucun repli possible.
+        assertFalse(ActionRegistry.get(ActionType.RUN_SHELL).hasFallback)
     }
 
     @Test
@@ -78,6 +98,7 @@ class ActionRegistryTest {
         assertTrue(disponibles.none { it.backend == Backend.ACCESSIBILITY })
         // Le pilotage de l'app musique, lui, exige le service d'accessibilité.
         assertTrue(ActionRegistry.all.any { it.backend == Backend.ACCESSIBILITY })
+        assertTrue(ActionRegistry.all.any { it.backend == Backend.SHIZUKU })
     }
 
     @Test
@@ -88,6 +109,7 @@ class ActionRegistryTest {
         assertTrue(parCategorie.containsKey(ActionCategory.COMMUNICATION))
         assertTrue(parCategorie.containsKey(ActionCategory.UTILITAIRES))
         assertTrue(parCategorie.containsKey(ActionCategory.MEDIA))
+        assertTrue(parCategorie.containsKey(ActionCategory.SYSTEME))
         assertEquals(ActionRegistry.all.size, parCategorie.values.sumOf { it.size })
     }
 }
