@@ -2,11 +2,15 @@ package com.nico.assistant.action
 
 import com.nico.assistant.action.impl.CallNumberAction
 import com.nico.assistant.action.impl.LaunchAppAction
+import com.nico.assistant.action.impl.MediaControlAction
 import com.nico.assistant.action.impl.OpenUrlAction
+import com.nico.assistant.action.impl.PlayMusicSearchAction
+import com.nico.assistant.action.impl.PlayMusicUiAction
 import com.nico.assistant.action.impl.SearchWebAction
 import com.nico.assistant.action.impl.SendSmsAction
 import com.nico.assistant.action.impl.ShowToastAction
 import com.nico.assistant.action.impl.SpeakAction
+import com.nico.assistant.action.impl.ToggleTorchAction
 import com.nico.assistant.action.impl.VibrateAction
 import com.nico.assistant.action.impl.WaitAction
 
@@ -25,7 +29,12 @@ object ActionRegistry {
         SearchWebAction(),
         CallNumberAction(),
         SendSmsAction(),
+        PlayMusicSearchAction(),
+        // ACCESSIBILITY
+        PlayMusicUiAction(),
         // INTERNAL
+        MediaControlAction(),
+        ToggleTorchAction(),
         SpeakAction(),
         VibrateAction(),
         WaitAction(),

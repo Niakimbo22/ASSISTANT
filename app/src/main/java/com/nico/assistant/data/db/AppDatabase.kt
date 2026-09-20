@@ -5,6 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import com.nico.assistant.data.seed.SeedInstaller
 
 /**
  * Base Room de NicoAssistant.
@@ -41,7 +42,16 @@ abstract class AppDatabase : RoomDatabase() {
                 instance ?: build(context.applicationContext).also { instance = it }
             }
 
-        private fun build(context: Context): AppDatabase =
-            Room.databaseBuilder(context, AppDatabase::class.java, NAME).build()
+        /**
+         * Le premier lancement crée la base et y installe les automatisations *seed*
+         * (spec §3) : la V1 n'avait pas de base, il n'y a donc rien à migrer.
+         */
+        private fun build(context: Context): AppDatabase {
+            lateinit var database: AppDatabase
+            database = Room.databaseBuilder(context, AppDatabase::class.java, NAME)
+                .addCallback(SeedInstaller.callback(context) { database })
+                .build()
+            return database
+        }
     }
 }

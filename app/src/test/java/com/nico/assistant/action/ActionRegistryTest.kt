@@ -21,8 +21,9 @@ class ActionRegistryTest {
     }
 
     @Test
-    fun `la premiere vague d actions est en place`() {
+    fun `les actions implementees sont exactement celles attendues`() {
         val attendues = setOf(
+            // Lot 3
             ActionType.LAUNCH_APP,
             ActionType.OPEN_URL,
             ActionType.SEARCH_WEB,
@@ -31,7 +32,12 @@ class ActionRegistryTest {
             ActionType.SPEAK,
             ActionType.VIBRATE,
             ActionType.WAIT,
-            ActionType.SHOW_TOAST
+            ActionType.SHOW_TOAST,
+            // Lot 5 : ce qu'il faut pour que les commandes V1 passent par les seeds
+            ActionType.PLAY_MUSIC_SEARCH,
+            ActionType.PLAY_MUSIC_UI,
+            ActionType.MEDIA_CONTROL,
+            ActionType.TOGGLE_TORCH
         )
         assertEquals(attendues, ActionRegistry.implementedTypes)
     }
@@ -67,8 +73,11 @@ class ActionRegistryTest {
     fun `sans Shizuku ni accessibilite, seules les actions intent et internes sont proposees`() {
         val disponibles = ActionRegistry.availableFor { it == Backend.INTENT || it == Backend.INTERNAL }
 
-        assertEquals(ActionRegistry.all.size, disponibles.size)
+        assertTrue(disponibles.isNotEmpty())
         assertTrue(disponibles.none { it.backend == Backend.SHIZUKU })
+        assertTrue(disponibles.none { it.backend == Backend.ACCESSIBILITY })
+        // Le pilotage de l'app musique, lui, exige le service d'accessibilité.
+        assertTrue(ActionRegistry.all.any { it.backend == Backend.ACCESSIBILITY })
     }
 
     @Test
@@ -78,6 +87,7 @@ class ActionRegistryTest {
         assertTrue(parCategorie.containsKey(ActionCategory.APPS))
         assertTrue(parCategorie.containsKey(ActionCategory.COMMUNICATION))
         assertTrue(parCategorie.containsKey(ActionCategory.UTILITAIRES))
+        assertTrue(parCategorie.containsKey(ActionCategory.MEDIA))
         assertEquals(ActionRegistry.all.size, parCategorie.values.sumOf { it.size })
     }
 }
