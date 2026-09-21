@@ -85,7 +85,9 @@ private fun AppRoot(listenRequested: MutableState<Boolean>) {
     val systemSettingsViewModel: SystemSettingsViewModel = viewModel()
     val logsViewModel: LogsViewModel = viewModel()
 
-    // Déclenchement externe : on saute directement sur l'écran d'écoute.
+    var screen by remember { mutableStateOf(Screen.AUTOMATIONS) }
+
+    // Déclenchement externe (tuile, widget, raccourci) : on saute sur l'écran d'écoute.
     LaunchedEffect(listenRequested.value) {
         if (listenRequested.value) {
             listenRequested.value = false
@@ -93,7 +95,6 @@ private fun AppRoot(listenRequested: MutableState<Boolean>) {
             voiceViewModel.listen()
         }
     }
-    var screen by remember { mutableStateOf(Screen.AUTOMATIONS) }
 
     // On demande d'emblée les permissions runtime nécessaires, avec un motif
     // implicite (micro pour écouter, contacts + téléphone pour les appels).
