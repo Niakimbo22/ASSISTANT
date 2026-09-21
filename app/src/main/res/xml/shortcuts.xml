@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Raccourci statique : appui long sur l'icône de l'app → écoute immédiate. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="listen"
+        android:enabled="true"
+        android:shortcutShortLabel="@string/shortcut_listen_short"
+        android:shortcutLongLabel="@string/shortcut_listen_long">
+        <intent
+            android:action="com.nico.assistant.action.LISTEN"
+            android:targetPackage="com.nico.assistant"
+            android:targetClass="com.nico.assistant.MainActivity" />
+    </shortcut>
+</shortcuts>

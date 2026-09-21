@@ -2,4 +2,8 @@
     <string name="app_name">NicoAssistant</string>
     <string name="a11y_service_label">NicoAssistant Music</string>
     <string name="a11y_service_description">Permet à NicoAssistant de piloter automatiquement l\'interface de votre application de musique (appui sur la recherche, saisie du titre, lecture) lorsque le lancement direct échoue.</string>
+    <string name="widget_listen_label">ÉCOUTER</string>
+    <string name="shortcut_listen_short">Écouter</string>
+    <string name="shortcut_listen_long">Lancer l\'écoute</string>
+    <string name="tile_listen_label">Écouter</string>
 </resources>

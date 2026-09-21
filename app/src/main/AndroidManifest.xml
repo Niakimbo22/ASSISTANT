@@ -6,6 +6,18 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- Envoi direct de SMS : uniquement si l'utilisateur coche la case dans l'action,
+         sinon l'app de messagerie s'ouvre pré-remplie et rien n'est envoyé sans lui. -->
+    <uses-permission android:name="android.permission.SEND_SMS" />
+
+    <!-- Lecture d'état pour les bascules « toggle », et replis sans Shizuku. -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
 
     <!-- Nécessaire (Android 11+) pour énumérer et lancer TOUTES les applis,
          y compris l'APK RVX sideloadé au nom de paquet inconnu. -->
@@ -23,6 +35,16 @@
         </intent>
         <intent>
             <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="smsto" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.WEB_SEARCH" />
         </intent>
     </queries>
 
@@ -47,7 +69,50 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Déclenchement de l'écoute par la tuile, le widget ou le raccourci. -->
+            <intent-filter>
+                <action android:name="com.nico.assistant.action.LISTEN" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
+
+        <!-- Tuile Quick Settings : le déclencheur le plus fiable. -->
+        <service
+            android:name=".core.trigger.AssistantTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_launcher_foreground"
+            android:label="@string/tile_listen_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- Widget d'écran d'accueil : un tap = écoute. -->
+        <receiver
+            android:name=".core.trigger.ListenWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_listen_info" />
+        </receiver>
+
+        <!-- Shizuku : accès aux API système de niveau ADB, sans root. -->
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:multiprocess="false"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
 
         <!-- Service d'accessibilité : pilote l'UI de l'appli musique (stratégie B). -->
         <service

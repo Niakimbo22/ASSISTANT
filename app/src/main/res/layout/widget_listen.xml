@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget d'un seul bouton : fond noir, texte monospace, accent rouge Nothing. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_listen_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/nothing_black"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/widget_listen_label"
+        android:textColor="@color/nothing_red"
+        android:textSize="16sp"
+        android:fontFamily="monospace" />
+</LinearLayout>

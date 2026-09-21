@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Thème hôte de l'activité. L'UI réelle est fournie par Compose Material3 ;
-         ce thème sert surtout d'écran de démarrage / conteneur. -->
-    <style name="Theme.NicoAssistant" parent="android:Theme.Material.NoActionBar" />
+         celui-ci évite le flash blanc avant le premier rendu (direction visuelle
+         Nothing : fond noir pur). -->
+    <style name="Theme.NicoAssistant" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/nothing_black</item>
+        <item name="android:navigationBarColor">@color/nothing_black</item>
+        <item name="android:statusBarColor">@color/nothing_black</item>
+    </style>
 </resources>
