@@ -69,7 +69,41 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Déclenchement de l'écoute par la tuile, le widget ou le raccourci. -->
+            <intent-filter>
+                <action android:name="com.nico.assistant.action.LISTEN" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
+
+        <!-- Tuile Quick Settings : le déclencheur le plus fiable. -->
+        <service
+            android:name=".core.trigger.AssistantTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_launcher_foreground"
+            android:label="@string/tile_listen_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- Widget d'écran d'accueil : un tap = écoute. -->
+        <receiver
+            android:name=".core.trigger.ListenWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_listen_info" />
+        </receiver>
 
         <!-- Shizuku : accès aux API système de niveau ADB, sans root. -->
         <provider

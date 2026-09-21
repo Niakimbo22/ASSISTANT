@@ -1,6 +1,7 @@
 package com.nico.assistant
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -11,6 +12,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -37,13 +39,32 @@ import com.nico.assistant.ui.voice.VoiceViewModel
  */
 class MainActivity : ComponentActivity() {
 
+    /** Posé par la tuile, le widget ou le raccourci : ouvre directement l'écoute. */
+    private val listenRequested = mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        consume(intent)
         setContent {
             NicoAssistantTheme {
-                AppRoot()
+                AppRoot(listenRequested)
             }
         }
+    }
+
+    // launchMode=singleTask : les déclenchements suivants arrivent ici, pas dans onCreate.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        consume(intent)
+    }
+
+    private fun consume(intent: Intent?) {
+        if (intent?.action == ACTION_LISTEN) listenRequested.value = true
+    }
+
+    companion object {
+        const val ACTION_LISTEN = "com.nico.assistant.action.LISTEN"
     }
 }
 
@@ -56,13 +77,22 @@ class MainActivity : ComponentActivity() {
 private enum class Screen { AUTOMATIONS, EDITOR, VOICE, SYSTEM_SETTINGS, LOGS, SETTINGS }
 
 @Composable
-private fun AppRoot() {
+private fun AppRoot(listenRequested: MutableState<Boolean>) {
     val vm: AssistantViewModel = viewModel()
     val listViewModel: AutomationListViewModel = viewModel()
     val editorViewModel: EditorViewModel = viewModel()
     val voiceViewModel: VoiceViewModel = viewModel()
     val systemSettingsViewModel: SystemSettingsViewModel = viewModel()
     val logsViewModel: LogsViewModel = viewModel()
+
+    // Déclenchement externe : on saute directement sur l'écran d'écoute.
+    LaunchedEffect(listenRequested.value) {
+        if (listenRequested.value) {
+            listenRequested.value = false
+            screen = Screen.VOICE
+            voiceViewModel.listen()
+        }
+    }
     var screen by remember { mutableStateOf(Screen.AUTOMATIONS) }
 
     // On demande d'emblée les permissions runtime nécessaires, avec un motif
