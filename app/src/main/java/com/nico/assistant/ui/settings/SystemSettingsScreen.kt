@@ -33,6 +33,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.Slider
+import androidx.compose.material3.TextButton
 import com.nico.assistant.shizuku.ShizukuState
 
 /**
@@ -44,11 +48,22 @@ import com.nico.assistant.shizuku.ShizukuState
 fun SystemSettingsScreen(
     viewModel: SystemSettingsViewModel,
     onBack: () -> Unit,
-    onOpenLegacySettings: () -> Unit
+    onOpenLegacySettings: () -> Unit,
+    onOpenLogs: () -> Unit
 ) {
     val state by viewModel.shizukuState.collectAsState()
     val testResult by viewModel.testResult.collectAsState()
+    val thresholds by viewModel.thresholds.collectAsState()
+    val transferMessage by viewModel.transferMessage.collectAsState()
     val context = LocalContext.current
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri -> uri?.let(viewModel::export) }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri -> uri?.let(viewModel::import) }
 
     // L'état peut avoir changé pendant qu'on était ailleurs (Shizuku relancé, autorisation
     // accordée depuis une autre app).
@@ -152,10 +167,102 @@ fun SystemSettingsScreen(
                 }
             }
 
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Seuils de reconnaissance", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = "Plus le seuil de confiance est bas, plus l'app se lance sans " +
+                            "demander — et plus elle se trompe.",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+
+                    ThresholdSlider(
+                        label = "Confiance",
+                        value = thresholds.confident,
+                        range = 0.5f..0.95f,
+                        onChange = viewModel::setConfident
+                    )
+                    ThresholdSlider(
+                        label = "Plancher (en dessous : j'ai pas compris)",
+                        value = thresholds.ambiguousFloor,
+                        range = 0.1f..0.7f,
+                        onChange = viewModel::setAmbiguousFloor
+                    )
+                    ThresholdSlider(
+                        label = "Écart minimum entre deux candidates",
+                        value = thresholds.minimumGap,
+                        range = 0.05f..0.4f,
+                        onChange = viewModel::setMinimumGap
+                    )
+
+                    TextButton(onClick = viewModel::resetThresholds) {
+                        Text("Revenir aux valeurs par défaut")
+                    }
+                }
+            }
+
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Sauvegarde", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = "Exporte tes automatisations en JSON pour les garder, les " +
+                            "partager, ou les remettre après une réinstallation.",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { exportLauncher.launch("nicoassistant-automatisations.json") }
+                        ) { Text("Exporter") }
+                        OutlinedButton(
+                            onClick = { importLauncher.launch(arrayOf("application/json", "text/plain")) }
+                        ) { Text("Importer") }
+                    }
+                    transferMessage?.let { message ->
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = FontFamily.Monospace,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+                }
+            }
+
+            OutlinedButton(
+                onClick = onOpenLogs,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Journal d'exécution") }
+
             OutlinedButton(
                 onClick = onOpenLegacySettings,
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Réglages de l'assistant (app musique, écoute auto)") }
         }
+    }
+}
+
+/** Un seuil de matching, avec sa valeur lisible : ils se règlent à tâtons, pas dans le code. */
+@Composable
+private fun ThresholdSlider(
+    label: String,
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    onChange: (Float) -> Unit
+) {
+    Column(modifier = Modifier.padding(top = 12.dp)) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            Text(
+                text = "%.2f".format(value),
+                style = MaterialTheme.typography.labelMedium,
+                fontFamily = FontFamily.Monospace
+            )
+        }
+        Slider(value = value, onValueChange = onChange, valueRange = range)
     }
 }

@@ -3,6 +3,7 @@ package com.nico.assistant.core.matching
 import com.nico.assistant.data.db.MatchMode
 import com.nico.assistant.data.model.Automation
 import com.nico.assistant.data.repo.AutomationSource
+import com.nico.assistant.prefs.Prefs
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -28,7 +29,16 @@ data class MatchThresholds(
     val minimumGap: Float = 0.15f,
     val ambiguousFloor: Float = 0.45f,
     val maxSuggestions: Int = 3
-)
+) {
+    companion object {
+        /** Les seuils tels que réglés par l'utilisateur. */
+        fun from(prefs: Prefs) = MatchThresholds(
+            confident = prefs.confidentThreshold,
+            minimumGap = prefs.minimumGap,
+            ambiguousFloor = prefs.ambiguousFloor
+        )
+    }
+}
 
 /**
  * Remplace intégralement la cascade de `if (texte.contains(...))` de la V1.

@@ -23,6 +23,8 @@ import com.nico.assistant.ui.editor.EditorScreen
 import com.nico.assistant.ui.editor.EditorViewModel
 import com.nico.assistant.ui.list.AutomationListScreen
 import com.nico.assistant.ui.list.AutomationListViewModel
+import com.nico.assistant.ui.logs.LogsScreen
+import com.nico.assistant.ui.logs.LogsViewModel
 import com.nico.assistant.ui.settings.SystemSettingsScreen
 import com.nico.assistant.ui.settings.SystemSettingsViewModel
 import com.nico.assistant.ui.voice.VoiceScreen
@@ -51,7 +53,7 @@ class MainActivity : ComponentActivity() {
  *
  * VOICE est l'écran d'écoute branché sur le pipeline V2.
  */
-private enum class Screen { AUTOMATIONS, EDITOR, VOICE, SYSTEM_SETTINGS, SETTINGS }
+private enum class Screen { AUTOMATIONS, EDITOR, VOICE, SYSTEM_SETTINGS, LOGS, SETTINGS }
 
 @Composable
 private fun AppRoot() {
@@ -60,6 +62,7 @@ private fun AppRoot() {
     val editorViewModel: EditorViewModel = viewModel()
     val voiceViewModel: VoiceViewModel = viewModel()
     val systemSettingsViewModel: SystemSettingsViewModel = viewModel()
+    val logsViewModel: LogsViewModel = viewModel()
     var screen by remember { mutableStateOf(Screen.AUTOMATIONS) }
 
     // On demande d'emblée les permissions runtime nécessaires, avec un motif
@@ -139,6 +142,15 @@ private fun AppRoot() {
                 viewModel = systemSettingsViewModel,
                 onBack = { screen = Screen.AUTOMATIONS },
                 onOpenLegacySettings = { screen = Screen.SETTINGS },
+                onOpenLogs = { screen = Screen.LOGS },
+            )
+        }
+
+        Screen.LOGS -> {
+            BackHandler { screen = Screen.SYSTEM_SETTINGS }
+            LogsScreen(
+                viewModel = logsViewModel,
+                onBack = { screen = Screen.SYSTEM_SETTINGS },
             )
         }
 

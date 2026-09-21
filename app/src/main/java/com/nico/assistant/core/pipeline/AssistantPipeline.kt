@@ -8,6 +8,8 @@ import com.nico.assistant.core.executor.Speaker
 import com.nico.assistant.core.matching.MatchEngine
 import com.nico.assistant.core.matching.MatchOutcome
 import com.nico.assistant.core.matching.MatchResult
+import com.nico.assistant.core.matching.MatchThresholds
+import com.nico.assistant.prefs.Prefs
 import com.nico.assistant.core.stt.SpeechEvent
 import com.nico.assistant.core.stt.SpeechManager
 import com.nico.assistant.data.db.ExecutionLogEntity
@@ -165,7 +167,7 @@ class AssistantPipeline(
             val repository = AutomationRepository.from(context)
             return AssistantPipeline(
                 speech = SpeechManager(context),
-                engine = MatchEngine(repository),
+                engine = MatchEngine(repository, MatchThresholds.from(Prefs(context))),
                 executor = ActionExecutor(
                     appContext = context.applicationContext,
                     speaker = speaker,
