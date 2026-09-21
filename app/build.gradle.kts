@@ -6,6 +6,20 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// Numéro de build injecté par la CI (`-PbuildNumber=${{ github.run_number }}`).
+// En local il vaut 0 : un APK local n'a jamais à se croire plus récent qu'une release.
+val buildNumber: Int = (project.findProperty("buildNumber") as String?)?.toIntOrNull()
+    ?: System.getenv("BUILD_NUMBER")?.toIntOrNull()
+    ?: 0
+
+// Keystore fixe déposée par la CI (secret KEYSTORE_BASE64). Sans elle — build local,
+// fork sans secrets — on retombe sur la clé debug : le build passe, mais l'APK produit
+// ne pourra pas se réinstaller par-dessus une version signée avec la vraie clé.
+val releaseKeystore: File? = System.getenv("NICO_KEYSTORE_FILE")
+    ?.takeIf { it.isNotBlank() }
+    ?.let(::File)
+    ?.takeIf { it.exists() }
+
 android {
     namespace = "com.nico.assistant"
     compileSdk = 35
@@ -14,12 +28,30 @@ android {
         applicationId = "com.nico.assistant"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        // versionCode suit le numéro de build : Android refuse d'installer un APK
+        // dont le versionCode est inférieur à celui déjà en place.
+        versionCode = buildNumber.coerceAtLeast(1)
+        versionName = "1.0.$buildNumber"
+
+        // Lu par update/BuildInfo.kt pour comparer avec la dernière release GitHub.
+        buildConfigField("int", "BUILD_NUMBER", "$buildNumber")
+    }
+
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = System.getenv("NICO_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("NICO_KEY_ALIAS")
+                keyPassword = System.getenv("NICO_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
+                ?: signingConfigs.getByName("debug")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -37,6 +69,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     testOptions {

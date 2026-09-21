@@ -15,6 +15,7 @@ Branche : `claude/lot1-socle-donnees-mbecj8`.
 | 6 | Shizuku, actions système, replis, écran d'onboarding | ✅ |
 | 7 | Conditions, composition (RUN_AUTOMATION), catalogue complet | ✅ |
 | 8 | Thème Nothing, journal, seuils, import/export, tuile, widget, raccourci | ✅ |
+| 9 | Mise à jour in-app : releases GitHub signées, UpdateChecker, installeur | ✅ |
 
 Les 31 types d'actions déclarés ont leur implémentation, et un test le vérifie
 à chaque build.
@@ -31,9 +32,11 @@ Chacun est un choix, pas un oubli — à rediscuter si tu préfères l'autre opt
    est soumis à des restrictions qu'on ne peut pas vérifier sans appareil.
 3. **Widget en `RemoteViews`, pas en Glance.** Même résultat pour un widget d'un
    seul bouton, sans ajouter un framework d'UI non testable ici.
-4. **Pas d'`UpdateChecker`.** La spec parle de « reprise de l'UpdateChecker V1 »,
-   mais il n'existe pas dans ce dépôt — il n'y a donc rien à reprendre. Écrire
-   un installeur d'APK à l'aveugle serait la pire chose à livrer non testée.
+4. **L'`UpdateChecker` passe par les releases, pas par les artefacts Actions.**
+   La spec §11 visait `/actions/artifacts`, mais cette API exige une
+   authentification même sur un dépôt public : un GET anonyme depuis le téléphone
+   reçoit un 401. Le workflow publie donc l'APK en release `build-<N>`, dont
+   l'asset se télécharge sans jeton. Détail complet : `docs/MISE_A_JOUR.md`.
 5. **`APP_FOREGROUND` ne bloque jamais une automatisation.** Évaluer cette
    condition exige l'accès aux statistiques d'usage ; bloquer silencieusement
    sur une condition non mesurable serait pire que de l'ignorer.
@@ -50,8 +53,12 @@ Chaque push sur cette branche lance `.github/workflows/build.yml` :
 avant qu'un APK existe, donc un artefact publié est un artefact dont les tests
 sont verts.
 
-- APK : onglet Actions → dernier run → artefact `NicoAssistant-debug`.
+- APK : onglet Releases → `build-<N>` → asset `NicoAssistant-build-<N>.apk`
+  (téléchargeable sans compte). Il reste aussi en artefact Actions, en secours.
 - Rapport de tests : artefact `test-reports` (HTML, lisible au téléphone).
+
+Le premier build après l'ajout du lot 9 s'installe encore à la main. Les suivants
+se proposent tout seuls à l'ouverture de l'app.
 
 ### Sur le téléphone, dans l'ordre
 

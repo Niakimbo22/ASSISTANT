@@ -29,8 +29,10 @@ import com.nico.assistant.ui.logs.LogsScreen
 import com.nico.assistant.ui.logs.LogsViewModel
 import com.nico.assistant.ui.settings.SystemSettingsScreen
 import com.nico.assistant.ui.settings.SystemSettingsViewModel
+import com.nico.assistant.ui.update.UpdatePrompt
 import com.nico.assistant.ui.voice.VoiceScreen
 import com.nico.assistant.ui.voice.VoiceViewModel
+import com.nico.assistant.update.UpdateViewModel
 
 /**
  * Activité unique de l'appli (Compose). Elle est lancée par le double-appui sur
@@ -84,8 +86,13 @@ private fun AppRoot(listenRequested: MutableState<Boolean>) {
     val voiceViewModel: VoiceViewModel = viewModel()
     val systemSettingsViewModel: SystemSettingsViewModel = viewModel()
     val logsViewModel: LogsViewModel = viewModel()
+    val updateViewModel: UpdateViewModel = viewModel()
 
     var screen by remember { mutableStateOf(Screen.AUTOMATIONS) }
+
+    // Vérification silencieuse au lancement : elle ne se manifeste que s'il y a
+    // vraiment une release plus récente que ce build (lot 9).
+    LaunchedEffect(Unit) { updateViewModel.checkOnLaunch() }
 
     // Déclenchement externe (tuile, widget, raccourci) : on saute sur l'écran d'écoute.
     LaunchedEffect(listenRequested.value) {
@@ -171,6 +178,7 @@ private fun AppRoot(listenRequested: MutableState<Boolean>) {
             BackHandler { screen = Screen.AUTOMATIONS }
             SystemSettingsScreen(
                 viewModel = systemSettingsViewModel,
+                updateViewModel = updateViewModel,
                 onBack = { screen = Screen.AUTOMATIONS },
                 onOpenLegacySettings = { screen = Screen.SETTINGS },
                 onOpenLogs = { screen = Screen.LOGS },
@@ -190,4 +198,6 @@ private fun AppRoot(listenRequested: MutableState<Boolean>) {
             onBack = { screen = Screen.SYSTEM_SETTINGS },
         )
     }
+
+    UpdatePrompt(viewModel = updateViewModel)
 }

@@ -13,3 +13,8 @@ build/
 
 # Dossier de travail (docs temporaires, briefings) — hors code applicatif
 scratchpad/
+
+# Clés de signature : elles vivent dans les GitHub Secrets, jamais dans le dépôt.
+*.jks
+*.keystore
+keystore.properties

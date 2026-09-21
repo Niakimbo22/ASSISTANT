@@ -38,6 +38,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.Slider
 import androidx.compose.material3.TextButton
 import com.nico.assistant.shizuku.ShizukuState
+import com.nico.assistant.ui.update.UpdateCard
+import com.nico.assistant.update.UpdateViewModel
 
 /**
  * Réglages système (spec §6.4) : le guide Shizuku s'adapte à l'état courant, et le service
@@ -47,6 +49,7 @@ import com.nico.assistant.shizuku.ShizukuState
 @Composable
 fun SystemSettingsScreen(
     viewModel: SystemSettingsViewModel,
+    updateViewModel: UpdateViewModel,
     onBack: () -> Unit,
     onOpenLegacySettings: () -> Unit,
     onOpenLogs: () -> Unit
@@ -89,6 +92,8 @@ fun SystemSettingsScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            UpdateCard(viewModel = updateViewModel)
+
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {

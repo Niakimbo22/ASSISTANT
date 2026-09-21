@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Seul le dossier des APK téléchargés est partageable : l'installeur système
+     n'a besoin de rien d'autre, et rien d'autre ne doit sortir de l'app. -->
+<paths>
+    <cache-path name="updates" path="updates/" />
+</paths>

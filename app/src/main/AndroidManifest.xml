@@ -8,6 +8,11 @@
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- Mise à jour in-app (lot 9) : interroger les releases GitHub, télécharger
+         l'APK, puis demander au système de l'installer par-dessus celui-ci. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <!-- Envoi direct de SMS : uniquement si l'utilisateur coche la case dans l'action,
          sinon l'app de messagerie s'ouvre pré-remplie et rien n'est envoyé sans lui. -->
     <uses-permission android:name="android.permission.SEND_SMS" />
@@ -103,6 +108,28 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_listen_info" />
+        </receiver>
+
+        <!-- Passe l'APK téléchargé à l'installeur système par une URI de contenu :
+             un file:// serait refusé depuis Android 7. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!-- Statut des sessions PackageInstaller : c'est lui qui lance l'écran
+             « Installer ? » quand le système nous le renvoie. -->
+        <receiver
+            android:name=".update.InstallResultReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.nico.assistant.action.INSTALL_STATUS" />
+            </intent-filter>
         </receiver>
 
         <!-- Shizuku : accès aux API système de niveau ADB, sans root. -->
