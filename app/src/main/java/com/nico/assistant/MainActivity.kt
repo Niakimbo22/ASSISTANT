@@ -12,6 +12,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -29,6 +31,8 @@ import com.nico.assistant.action.Backend
 import com.nico.assistant.core.pipeline.AssistantState
 import com.nico.assistant.shizuku.ShizukuManager
 import com.nico.assistant.ui.theme.LocalHazeState
+import com.nico.assistant.ui.theme.LocalNavAnimatedScope
+import com.nico.assistant.ui.theme.LocalSharedTransitionScope
 import com.nico.assistant.ui.theme.NicoColors
 import com.nico.assistant.ui.theme.NicoMotion
 import com.nico.assistant.ui.voice.ListeningIsland
@@ -117,6 +121,7 @@ private enum class Screen(val depth: Int) {
     SETTINGS(2)
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun AppRoot(listenRequested: MutableState<Boolean>) {
     val vm: AssistantViewModel = viewModel()
@@ -200,7 +205,7 @@ private fun AppRoot(listenRequested: MutableState<Boolean>) {
     val rootHaze = remember { HazeState() }
 
     Box(modifier = Modifier.fillMaxSize().background(NicoColors.Void)) {
-        Box(modifier = Modifier.fillMaxSize().hazeSource(rootHaze)) {
+        SharedTransitionLayout(modifier = Modifier.fillMaxSize().hazeSource(rootHaze)) {
             AnimatedContent(
                 targetState = screen,
                 transitionSpec = {
@@ -216,6 +221,10 @@ private fun AppRoot(listenRequested: MutableState<Boolean>) {
                 },
                 label = "navigation"
             ) { current ->
+                CompositionLocalProvider(
+                    LocalSharedTransitionScope provides this@SharedTransitionLayout,
+                    LocalNavAnimatedScope provides this@AnimatedContent
+                ) {
                 when (current) {
                     Screen.AUTOMATIONS -> AutomationListScreen(
                         viewModel = listViewModel,
@@ -226,7 +235,7 @@ private fun AppRoot(listenRequested: MutableState<Boolean>) {
                             push(Screen.EDITOR)
                         },
                         onEdit = { automation ->
-                            editorViewModel.load(automation.id)
+                            editorViewModel.edit(automation)
                             push(Screen.EDITOR)
                         },
                         onMic = {
@@ -258,6 +267,7 @@ private fun AppRoot(listenRequested: MutableState<Boolean>) {
                         vm = vm,
                         onBack = { pop() },
                     )
+                }
                 }
             }
         }

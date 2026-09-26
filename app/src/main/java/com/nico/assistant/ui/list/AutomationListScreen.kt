@@ -74,6 +74,8 @@ import com.nico.assistant.ui.theme.NicoSpacing
 import com.nico.assistant.ui.theme.SectionLabel
 import com.nico.assistant.ui.theme.Symbols
 import com.nico.assistant.ui.theme.rememberHaptics
+import com.nico.assistant.ui.theme.automationTitleKey
+import com.nico.assistant.ui.theme.sharedElementOrSelf
 import kotlinx.coroutines.delay
 
 /**
@@ -362,13 +364,17 @@ private fun AutomationCard(
         contentPadding = PaddingValues(start = NicoSpacing.lg, end = NicoSpacing.xs, top = NicoSpacing.sm, bottom = NicoSpacing.md)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = automation.name.ifBlank { "Sans nom" },
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f).alpha(contentAlpha)
-            )
+            Box(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = automation.name.ifBlank { "Sans nom" },
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .sharedElementOrSelf(automationTitleKey(automation.id))
+                        .alpha(contentAlpha)
+                )
+            }
             GlassSwitch(
                 checked = automation.enabled,
                 onCheckedChange = onToggle,

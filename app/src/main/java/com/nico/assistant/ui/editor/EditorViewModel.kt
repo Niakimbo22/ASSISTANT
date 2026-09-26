@@ -9,6 +9,7 @@ import com.nico.assistant.core.executor.Speaker
 import com.nico.assistant.core.condition.Condition
 import com.nico.assistant.data.db.MatchMode
 import com.nico.assistant.data.model.ActionSpec
+import com.nico.assistant.data.model.Automation
 import com.nico.assistant.data.repo.AutomationRepository
 import com.nico.assistant.shizuku.ShizukuManager
 import com.nico.assistant.tts.TtsManager
@@ -72,6 +73,17 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             val existing = repository.getById(automationId)
             _draft.value = existing?.let { EditorDraft.of(it) } ?: EditorDraft.blank(initialPhrase)
         }
+    }
+
+    /**
+     * Ouverture depuis la liste : l'automatisation est déjà en mémoire, le brouillon est prêt
+     * dès la première image — c'est ce qui permet au nom de glisser de la carte à l'éditeur.
+     */
+    fun edit(automation: Automation) {
+        stopDictation()
+        _saved.value = false
+        _testReport.value = null
+        _draft.value = EditorDraft.of(automation)
     }
 
     private fun update(transform: (EditorDraft) -> EditorDraft) {

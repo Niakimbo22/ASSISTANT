@@ -185,6 +185,7 @@ fun GlassTopBar(
     scrolled: Boolean = true,
     showTitle: Boolean = true,
     navigationIcon: (@Composable () -> Unit)? = null,
+    titleModifier: Modifier = Modifier,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     val glassAlpha by animateFloatAsState(
@@ -229,16 +230,15 @@ fun GlassTopBar(
             } else {
                 Box(modifier = Modifier.padding(start = NicoSpacing.md))
             }
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = NicoSpacing.xs)
-                    .graphicsLayer { alpha = titleAlpha }
-            )
+            Box(modifier = Modifier.weight(1f).padding(horizontal = NicoSpacing.xs)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = titleModifier.graphicsLayer { alpha = titleAlpha }
+                )
+            }
             Row(verticalAlignment = Alignment.CenterVertically, content = actions)
         }
     }

@@ -97,6 +97,8 @@ import com.nico.assistant.ui.theme.SectionLabel
 import com.nico.assistant.ui.theme.StatusBadge
 import com.nico.assistant.ui.theme.Symbols
 import com.nico.assistant.ui.theme.VoiceWave
+import com.nico.assistant.ui.theme.automationTitleKey
+import com.nico.assistant.ui.theme.sharedElementOrSelf
 import com.nico.assistant.ui.theme.rememberHaptics
 import com.nico.assistant.ui.theme.visual
 import kotlinx.coroutines.launch
@@ -141,6 +143,9 @@ fun EditorScreen(
                 title = draft.name.ifBlank { if (draft.isNew) "Nouvelle automatisation" else "Automatisation" },
                 scrolled = scrollState.value > 8,
                 navigationIcon = { BackButton(onBack) },
+                titleModifier = Modifier.sharedElementOrSelf(
+                    if (draft.isNew) null else automationTitleKey(draft.automation.id)
+                ),
                 actions = {
                     SaveButton(
                         valid = draft.isValid,
