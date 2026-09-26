@@ -65,6 +65,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
+    // Flou d'arrière-plan des surfaces en verre (design system ui/theme)
+    implementation(libs.haze)
     debugImplementation(libs.androidx.ui.tooling)
 
     // Socle de données (lot 1)

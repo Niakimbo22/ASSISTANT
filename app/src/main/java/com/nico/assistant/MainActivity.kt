@@ -5,6 +5,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -19,7 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nico.assistant.ui.AssistantViewModel
-import com.nico.assistant.ui.NicoAssistantTheme
+import com.nico.assistant.ui.theme.NicoAssistantTheme
 import com.nico.assistant.ui.SettingsScreen
 import com.nico.assistant.ui.editor.EditorScreen
 import com.nico.assistant.ui.editor.EditorViewModel
@@ -43,7 +45,17 @@ class MainActivity : ComponentActivity() {
     private val listenRequested = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Bord à bord : le fond animé passe sous les barres système, et chaque écran gère ses
+        // marges (WindowInsets) pour que rien ne soit coupé.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+        )
         super.onCreate(savedInstanceState)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            // Pas de voile gris derrière la barre de gestes : le verre du dock suffit.
+            window.isNavigationBarContrastEnforced = false
+        }
         consume(intent)
         setContent {
             NicoAssistantTheme {

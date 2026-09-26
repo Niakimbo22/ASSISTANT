@@ -3,8 +3,8 @@ name: Build APK
 on:
   push:
     branches:
-      - "claude/nicoassistant-voice-app-xpz7pr"
-      - "claude/lot1-socle-donnees-mbecj8"
+      - "claude/**"
+      - "main"
   workflow_dispatch:
 
 jobs:

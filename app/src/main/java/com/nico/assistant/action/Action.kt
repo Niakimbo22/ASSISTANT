@@ -54,13 +54,18 @@ interface Action {
 /** Ce dont l'action a besoin pour fonctionner, et donc ce qu'il faut vérifier avant. */
 enum class Backend { INTENT, ACCESSIBILITY, SHIZUKU, INTERNAL }
 
-/** Regroupement du sélecteur d'action (spec §7.4). */
-enum class ActionCategory(val label: String) {
-    APPS("Applications"),
-    COMMUNICATION("Communication"),
-    MEDIA("Média"),
-    SYSTEME("Système"),
-    UTILITAIRES("Utilitaires")
+/**
+ * Regroupement du sélecteur d'action (spec §7.4).
+ *
+ * @param accent couleur de catégorie en ARGB, reprise par l'icône de chaque action de la
+ * catégorie. Gardée en `Long` pour que ce package reste indépendant de Compose.
+ */
+enum class ActionCategory(val label: String, val accent: Long) {
+    APPS("Applications", 0xFF5B8CFF),
+    COMMUNICATION("Communication", 0xFF3DD68C),
+    MEDIA("Média", 0xFFFF5FA2),
+    SYSTEME("Système", 0xFFFF9F43),
+    UTILITAIRES("Utilitaires", 0xFFA78BFA)
 }
 
 sealed interface ActionResult {

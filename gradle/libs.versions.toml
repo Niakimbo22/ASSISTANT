@@ -13,6 +13,8 @@ junit = "4.13.2"
 robolectric = "4.14.1"
 androidxTestCore = "1.6.1"
 shizuku = "13.1.5"
+# 1.2.2 : dernière version alignée sur Compose 1.7 (la 2.x exige Compose 1.12 et Kotlin 2.4)
+haze = "1.2.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -37,6 +39,9 @@ kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 # Accès système sans root (lot 6)
 shizuku-api = { group = "dev.rikka.shizuku", name = "api", version.ref = "shizuku" }
 shizuku-provider = { group = "dev.rikka.shizuku", name = "provider", version.ref = "shizuku" }
+
+# Verre dépoli (liquid glass) : flou d'arrière-plan des barres flottantes
+haze = { group = "dev.chrisbanes.haze", name = "haze", version.ref = "haze" }
 
 # Tests unitaires JVM
 junit = { group = "junit", name = "junit", version.ref = "junit" }
