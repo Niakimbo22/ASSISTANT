@@ -12,6 +12,9 @@ import com.nico.assistant.data.model.ActionSpec
 import com.nico.assistant.data.repo.AutomationRepository
 import com.nico.assistant.shizuku.ShizukuManager
 import com.nico.assistant.tts.TtsManager
+import com.nico.assistant.core.stt.SpeechEvent
+import com.nico.assistant.core.stt.SpeechManager
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,12 +47,21 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _running = MutableStateFlow(false)
     val running: StateFlow<Boolean> = _running.asStateFlow()
 
+    /**
+     * Dictée d'une phrase déclenchante : la reconnaissance vocale transcrit, la phrase est
+     * ajoutée telle quelle. Aucun matching ici, on ne fait que remplir le champ.
+     */
+    private val _dictation = MutableStateFlow<Dictation?>(null)
+    val dictation: StateFlow<Dictation?> = _dictation.asStateFlow()
+    private var dictationJob: Job? = null
+
 
     /**
      * @param automationId `null` pour une création.
      * @param initialPhrase phrase entendue mais non reconnue, pré-remplie depuis le NoMatch.
      */
     fun load(automationId: String?, initialPhrase: String? = null) {
+        stopDictation()
         _saved.value = false
         _testReport.value = null
         if (automationId == null) {
@@ -116,13 +128,53 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun toggleDictation() {
+        if (dictationJob?.isActive == true) {
+            stopDictation()
+            return
+        }
+        _dictation.value = Dictation()
+        dictationJob = viewModelScope.launch {
+            try {
+                SpeechManager(getApplication<Application>()).listen().collect { event ->
+                    when (event) {
+                        is SpeechEvent.Level -> _dictation.value = _dictation.value?.copy(level = event.rms)
+                        is SpeechEvent.Partial -> _dictation.value = _dictation.value?.copy(partial = event.text)
+                        is SpeechEvent.Final -> {
+                            addPhrase(event.best)
+                            _dictation.value = null
+                        }
+                        is SpeechEvent.Failed -> _dictation.value = Dictation(error = event.message)
+                        SpeechEvent.Ready -> Unit
+                    }
+                }
+            } finally {
+                if (_dictation.value?.error == null) _dictation.value = null
+            }
+        }
+    }
+
+    fun stopDictation() {
+        dictationJob?.cancel()
+        dictationJob = null
+        _dictation.value = null
+    }
+
     fun dismissTestReport() {
         _testReport.value = null
     }
 
     override fun onCleared() {
         super.onCleared()
+        dictationJob?.cancel()
         // Ne pas réveiller le moteur TTS juste pour l'éteindre.
         if (ttsDelegate.isInitialized()) tts.shutdown()
     }
 }
+
+/** État de la dictée d'une phrase : niveau sonore, transcription partielle, ou erreur. */
+data class Dictation(
+    val partial: String = "",
+    val level: Float = 0f,
+    val error: String? = null
+)
