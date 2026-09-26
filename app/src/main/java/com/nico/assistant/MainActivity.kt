@@ -11,6 +11,29 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import com.nico.assistant.a11y.MusicAccessibilityService
+import com.nico.assistant.action.Backend
+import com.nico.assistant.core.pipeline.AssistantState
+import com.nico.assistant.shizuku.ShizukuManager
+import com.nico.assistant.ui.theme.LocalHazeState
+import com.nico.assistant.ui.theme.NicoColors
+import com.nico.assistant.ui.theme.NicoMotion
+import com.nico.assistant.ui.voice.ListeningIsland
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -31,7 +54,6 @@ import com.nico.assistant.ui.logs.LogsScreen
 import com.nico.assistant.ui.logs.LogsViewModel
 import com.nico.assistant.ui.settings.SystemSettingsScreen
 import com.nico.assistant.ui.settings.SystemSettingsViewModel
-import com.nico.assistant.ui.voice.VoiceScreen
 import com.nico.assistant.ui.voice.VoiceViewModel
 
 /**
@@ -81,12 +103,19 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
- * Navigation minimale. L'accueil est désormais la liste des automatisations : c'est le
- * catalogue qui remplace les commandes codées en dur de la V1.
+ * Navigation : une pile d'écrans, animée sur ressort. L'accueil est la liste des
+ * automatisations : c'est le catalogue qui remplace les commandes codées en dur de la V1.
  *
- * VOICE est l'écran d'écoute branché sur le pipeline V2.
+ * L'écoute n'est plus un écran : c'est une pastille flottante (façon Dynamic Island) posée
+ * au-dessus de n'importe quel écran.
  */
-private enum class Screen { AUTOMATIONS, EDITOR, VOICE, SYSTEM_SETTINGS, LOGS, SETTINGS }
+private enum class Screen(val depth: Int) {
+    AUTOMATIONS(0),
+    EDITOR(1),
+    SYSTEM_SETTINGS(1),
+    LOGS(2),
+    SETTINGS(2)
+}
 
 @Composable
 private fun AppRoot(listenRequested: MutableState<Boolean>) {
@@ -97,14 +126,27 @@ private fun AppRoot(listenRequested: MutableState<Boolean>) {
     val systemSettingsViewModel: SystemSettingsViewModel = viewModel()
     val logsViewModel: LogsViewModel = viewModel()
 
-    var screen by remember { mutableStateOf(Screen.AUTOMATIONS) }
+    val voiceState by voiceViewModel.state.collectAsState()
+    val shizukuState by ShizukuManager.shared().state.collectAsState()
+    val context = LocalContext.current
 
-    // Déclenchement externe (tuile, widget, raccourci) : on saute sur l'écran d'écoute.
+    var backStack by remember { mutableStateOf(listOf(Screen.AUTOMATIONS)) }
+    val screen = backStack.last()
+    fun push(target: Screen) {
+        backStack = backStack + target
+    }
+    fun pop() {
+        if (backStack.size > 1) backStack = backStack.dropLast(1)
+    }
+    fun listen() {
+        voiceViewModel.listen()
+    }
+
+    // Déclenchement externe (tuile, widget, raccourci) : la pastille d'écoute s'ouvre par-dessus.
     LaunchedEffect(listenRequested.value) {
         if (listenRequested.value) {
             listenRequested.value = false
-            screen = Screen.VOICE
-            voiceViewModel.listen()
+            listen()
         }
     }
 
@@ -114,11 +156,9 @@ private fun AppRoot(listenRequested: MutableState<Boolean>) {
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { result ->
-        // Si le micro est accordé et que l'écoute auto est active, on ouvre l'écoute.
+        // Si le micro est accordé et que l'écoute auto est active, on écoute.
         val micGranted = result[Manifest.permission.RECORD_AUDIO] == true
-        if (micGranted && vm.state.autoListen) {
-            screen = Screen.VOICE
-        }
+        if (micGranted && vm.state.autoListen) listen()
     }
 
     LaunchedEffect(Unit) {
@@ -135,74 +175,107 @@ private fun AppRoot(listenRequested: MutableState<Boolean>) {
             }
             if (toRequest.isEmpty()) {
                 // Tout est déjà accordé : écoute auto immédiate si activée.
-                if (vm.state.autoListen) screen = Screen.VOICE
+                if (vm.state.autoListen) listen()
             } else {
                 permissionLauncher.launch(toRequest.toTypedArray())
             }
         }
     }
 
-    when (screen) {
-        Screen.AUTOMATIONS -> AutomationListScreen(
-            viewModel = listViewModel,
-            listening = false,
-            voiceLevel = 0f,
-            onCreate = {
-                editorViewModel.load(null)
-                screen = Screen.EDITOR
-            },
-            onEdit = { automation ->
-                editorViewModel.load(automation.id)
-                screen = Screen.EDITOR
-            },
-            onMic = { screen = Screen.VOICE },
-            onOpenSettings = { screen = Screen.SYSTEM_SETTINGS },
-            onOpenLogs = { screen = Screen.LOGS },
-        )
+    BackHandler(enabled = backStack.size > 1) { pop() }
+    // Déclaré après : quand la pastille est ouverte, « retour » la ferme d'abord.
+    BackHandler(enabled = voiceState !is AssistantState.Idle) { voiceViewModel.reset() }
 
-        Screen.EDITOR -> {
-            BackHandler { screen = Screen.AUTOMATIONS }
-            EditorScreen(
-                viewModel = editorViewModel,
-                onBack = { screen = Screen.AUTOMATIONS },
-            )
+    // Disponibilité réelle des backends, pour griser les actions impossibles dans le sélecteur.
+    val isBackendAvailable: (Backend) -> Boolean = remember(shizukuState) {
+        { backend ->
+            when (backend) {
+                Backend.INTENT, Backend.INTERNAL -> true
+                Backend.SHIZUKU -> shizukuState.isReady
+                Backend.ACCESSIBILITY -> MusicAccessibilityService.isEnabled(context)
+            }
+        }
+    }
+
+    val rootHaze = remember { HazeState() }
+
+    Box(modifier = Modifier.fillMaxSize().background(NicoColors.Void)) {
+        Box(modifier = Modifier.fillMaxSize().hazeSource(rootHaze)) {
+            AnimatedContent(
+                targetState = screen,
+                transitionSpec = {
+                    val forward = targetState.depth > initialState.depth
+                    val backward = targetState.depth < initialState.depth
+                    when {
+                        forward -> (slideInHorizontally(NicoMotion.gentle()) { it / 4 } + fadeIn()) togetherWith
+                            (slideOutHorizontally(NicoMotion.gentle()) { -it / 8 } + fadeOut())
+                        backward -> (slideInHorizontally(NicoMotion.gentle()) { -it / 8 } + fadeIn()) togetherWith
+                            (slideOutHorizontally(NicoMotion.gentle()) { it / 4 } + fadeOut())
+                        else -> fadeIn() togetherWith fadeOut()
+                    }
+                },
+                label = "navigation"
+            ) { current ->
+                when (current) {
+                    Screen.AUTOMATIONS -> AutomationListScreen(
+                        viewModel = listViewModel,
+                        listening = voiceState is AssistantState.Listening,
+                        voiceLevel = (voiceState as? AssistantState.Listening)?.level ?: 0f,
+                        onCreate = {
+                            editorViewModel.load(null)
+                            push(Screen.EDITOR)
+                        },
+                        onEdit = { automation ->
+                            editorViewModel.load(automation.id)
+                            push(Screen.EDITOR)
+                        },
+                        onMic = {
+                            if (voiceState is AssistantState.Idle) listen() else voiceViewModel.reset()
+                        },
+                        onOpenSettings = { push(Screen.SYSTEM_SETTINGS) },
+                        onOpenLogs = { push(Screen.LOGS) },
+                    )
+
+                    Screen.EDITOR -> EditorScreen(
+                        viewModel = editorViewModel,
+                        isBackendAvailable = isBackendAvailable,
+                        onBack = { pop() },
+                    )
+
+                    Screen.SYSTEM_SETTINGS -> SystemSettingsScreen(
+                        viewModel = systemSettingsViewModel,
+                        onBack = { pop() },
+                        onOpenLegacySettings = { push(Screen.SETTINGS) },
+                        onOpenLogs = { push(Screen.LOGS) },
+                    )
+
+                    Screen.LOGS -> LogsScreen(
+                        viewModel = logsViewModel,
+                        onBack = { pop() },
+                    )
+
+                    Screen.SETTINGS -> SettingsScreen(
+                        vm = vm,
+                        onBack = { pop() },
+                    )
+                }
+            }
         }
 
-        Screen.VOICE -> {
-            BackHandler { screen = Screen.AUTOMATIONS }
-            VoiceScreen(
-                viewModel = voiceViewModel,
-                onBack = { screen = Screen.AUTOMATIONS },
+        CompositionLocalProvider(LocalHazeState provides rootHaze) {
+            ListeningIsland(
+                state = voiceState,
+                onStop = voiceViewModel::reset,
+                onRetry = { listen() },
+                onChoose = voiceViewModel::choose,
                 // C'est comme ça que le catalogue se construit à l'usage : la phrase
                 // non reconnue ouvre l'éditeur déjà pré-rempli.
                 onCreateAutomation = { phrase ->
+                    voiceViewModel.reset()
                     editorViewModel.load(null, initialPhrase = phrase)
-                    screen = Screen.EDITOR
+                    if (screen != Screen.EDITOR) push(Screen.EDITOR)
                 },
             )
         }
-
-        Screen.SYSTEM_SETTINGS -> {
-            BackHandler { screen = Screen.AUTOMATIONS }
-            SystemSettingsScreen(
-                viewModel = systemSettingsViewModel,
-                onBack = { screen = Screen.AUTOMATIONS },
-                onOpenLegacySettings = { screen = Screen.SETTINGS },
-                onOpenLogs = { screen = Screen.LOGS },
-            )
-        }
-
-        Screen.LOGS -> {
-            BackHandler { screen = Screen.SYSTEM_SETTINGS }
-            LogsScreen(
-                viewModel = logsViewModel,
-                onBack = { screen = Screen.SYSTEM_SETTINGS },
-            )
-        }
-
-        Screen.SETTINGS -> SettingsScreen(
-            vm = vm,
-            onBack = { screen = Screen.SYSTEM_SETTINGS },
-        )
     }
 }
