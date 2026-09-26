@@ -5,6 +5,13 @@ faite de nuit en autonomie. La logique métier (matching, executor, Room, Shizuk
 n'a pas été touchée, à une exception près, voulue : `ActionType` porte désormais son
 pictogramme et `ActionCategory` sa couleur (métadonnées d'UI, sans dépendance Compose).
 
+## État
+
+- Six lots, un commit chacun (plus trois petits correctifs), tous verts en CI.
+- **Mergé** en avance rapide dans la branche par défaut du dépôt,
+  `claude/nicoassistant-voice-app-xpz7pr` (il n'existe pas de branche `main`) : build
+  n° 25 vert. L'APK est l'artefact `NicoAssistant-debug` de ce run.
+
 ## Ce qui a changé
 
 ### Design system — `ui/theme/`
