@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -42,6 +43,12 @@ class AutomationListViewModel(application: Application) : AndroidViewModel(appli
     private val _recentlyDeleted = MutableStateFlow<Automation?>(null)
     val recentlyDeleted: StateFlow<Automation?> = _recentlyDeleted.asStateFlow()
 
+    /** Nombre total d'automatisations et nombre d'actives, pour le sous-titre de la liste. */
+    val totals: StateFlow<Pair<Int, Int>> =
+        repository.observeAll()
+            .map { list -> list.size to list.count { it.enabled } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0 to 0)
+
     val automations: StateFlow<List<Automation>> =
         combine(repository.observeAll(), _query) { list, query ->
             AutomationFilter.filter(list, query)
@@ -69,6 +76,11 @@ class AutomationListViewModel(application: Application) : AndroidViewModel(appli
             repository.save(deleted)
             _recentlyDeleted.value = null
         }
+    }
+
+    /** Crée directement une automatisation depuis un modèle de l'écran vide. */
+    fun createFromTemplate(template: Automation) {
+        viewModelScope.launch { repository.save(AutomationTemplates.instantiate(template)) }
     }
 
     fun clearUndo() {

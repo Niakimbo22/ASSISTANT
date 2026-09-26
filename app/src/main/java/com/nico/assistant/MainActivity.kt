@@ -145,6 +145,8 @@ private fun AppRoot(listenRequested: MutableState<Boolean>) {
     when (screen) {
         Screen.AUTOMATIONS -> AutomationListScreen(
             viewModel = listViewModel,
+            listening = false,
+            voiceLevel = 0f,
             onCreate = {
                 editorViewModel.load(null)
                 screen = Screen.EDITOR
@@ -153,8 +155,9 @@ private fun AppRoot(listenRequested: MutableState<Boolean>) {
                 editorViewModel.load(automation.id)
                 screen = Screen.EDITOR
             },
-            onOpenVoice = { screen = Screen.VOICE },
+            onMic = { screen = Screen.VOICE },
             onOpenSettings = { screen = Screen.SYSTEM_SETTINGS },
+            onOpenLogs = { screen = Screen.LOGS },
         )
 
         Screen.EDITOR -> {
