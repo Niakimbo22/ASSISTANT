@@ -1,26 +1,37 @@
 package com.nico.assistant.ui.actionpicker
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,21 +39,45 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.nico.assistant.action.Action
+import com.nico.assistant.action.ActionCategory
 import com.nico.assistant.action.ActionRegistry
 import com.nico.assistant.action.Backend
+import com.nico.assistant.core.matching.TextNormalizer
 import com.nico.assistant.data.model.ActionSpec
+import com.nico.assistant.ui.theme.ActionIconTile
+import com.nico.assistant.ui.theme.GlassButton
+import com.nico.assistant.ui.theme.GlassChip
+import com.nico.assistant.ui.theme.GlassIconButton
+import com.nico.assistant.ui.theme.GlassSheet
+import com.nico.assistant.ui.theme.GlassSheetHeader
+import com.nico.assistant.ui.theme.GlassTextField
+import com.nico.assistant.ui.theme.GlassToggleRow
+import com.nico.assistant.ui.theme.NicoColors
+import com.nico.assistant.ui.theme.NicoMotion
+import com.nico.assistant.ui.theme.NicoRadius
+import com.nico.assistant.ui.theme.NicoSpacing
+import com.nico.assistant.ui.theme.SectionLabel
+import com.nico.assistant.ui.theme.StatusBadge
+import com.nico.assistant.ui.theme.Symbols
+import com.nico.assistant.ui.theme.color
+import com.nico.assistant.ui.theme.glass
+import com.nico.assistant.ui.theme.pressScale
+import com.nico.assistant.ui.theme.rememberHaptics
 
 /**
- * Sélecteur d'action en deux temps (spec §7.4) : choix du type, puis paramètres.
+ * Sélecteur d'action en deux temps (spec §7.4) : choix du type dans une grille de tuiles,
+ * puis paramètres.
  *
- * Le second écran n'est **pas** écrit à la main : il est généré depuis `paramsSchema`.
+ * La feuille s'ouvre en grand : recherche collée en haut, filtres de catégorie, et une grille
+ * qui défile **sous** la recherche sans jamais passer dessus. Le second écran n'est **pas**
+ * écrit à la main : il est généré depuis `paramsSchema`.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActionPickerSheet(
     initial: ActionSpec?,
@@ -51,39 +86,66 @@ fun ActionPickerSheet(
     onConfirm: (ActionSpec) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var chosen by remember {
         mutableStateOf(initial?.let { spec -> ActionRegistry.find(spec.type) })
     }
     var draft by remember { mutableStateOf(initial) }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        val action = chosen
-        if (action == null) {
-            TypeStep(
-                isBackendAvailable = isBackendAvailable,
-                onPick = { picked ->
-                    chosen = picked
-                    draft = ActionSpec(
-                        type = picked.type,
-                        params = picked.paramsSchema
-                            .mapNotNull { param -> param.default?.let { param.key to it } }
-                            .toMap()
-                    )
-                }
-            )
-        } else {
-            ParamsStep(
-                action = action,
-                spec = draft ?: ActionSpec(type = action.type),
-                availableSlots = availableSlots,
-                onChange = { draft = it },
-                onBack = { chosen = null },
-                onConfirm = { onConfirm(it) }
-            )
+    GlassSheet(onDismissRequest = onDismiss, skipPartiallyExpanded = true) {
+        AnimatedContent(
+            targetState = chosen,
+            transitionSpec = {
+                val forward = targetState != null
+                (slideInHorizontally(NicoMotion.gentle()) { if (forward) it / 3 else -it / 3 } + fadeIn()) togetherWith
+                    (slideOutHorizontally(NicoMotion.gentle()) { if (forward) -it / 3 else it / 3 } + fadeOut())
+            },
+            label = "étape du sélecteur",
+            modifier = Modifier.fillMaxWidth().fillMaxHeight()
+        ) { action ->
+            if (action == null) {
+                TypeStep(
+                    isBackendAvailable = isBackendAvailable,
+                    onPick = { picked ->
+                        chosen = picked
+                        draft = ActionSpec(
+                            type = picked.type,
+                            params = picked.paramsSchema
+                                .mapNotNull { param -> param.default?.let { param.key to it } }
+                                .toMap()
+                        )
+                    }
+                )
+            } else {
+                ParamsStep(
+                    action = action,
+                    spec = draft?.takeIf { it.type == action.type } ?: ActionSpec(type = action.type),
+                    availableSlots = availableSlots,
+                    isEditing = initial != null,
+                    onChange = { draft = it },
+                    onBack = { chosen = null },
+                    onConfirm = { onConfirm(it) }
+                )
+            }
         }
     }
 }
+
+/** Ce que l'app peut faire d'une action ici et maintenant. */
+private enum class Availability { READY, FALLBACK, BLOCKED }
+
+private fun availabilityOf(action: Action, isBackendAvailable: (Backend) -> Boolean): Availability = when {
+    isBackendAvailable(action.backend) -> Availability.READY
+    action.hasFallback -> Availability.FALLBACK
+    else -> Availability.BLOCKED
+}
+
+private val Backend.displayName: String
+    get() = when (this) {
+        Backend.SHIZUKU -> "Shizuku"
+        Backend.ACCESSIBILITY -> "Accessibilité"
+        Backend.INTENT -> "Système"
+        Backend.INTERNAL -> "Interne"
+    }
 
 @Composable
 private fun TypeStep(
@@ -91,61 +153,178 @@ private fun TypeStep(
     onPick: (Action) -> Unit
 ) {
     var search by remember { mutableStateOf("") }
-    val grouped = remember(search) {
-        ActionRegistry.byCategory().mapValues { (_, actions) ->
-            actions.filter { it.label.contains(search, ignoreCase = true) }
-        }.filterValues { it.isNotEmpty() }
+    var category by remember { mutableStateOf<ActionCategory?>(null) }
+    val grouped = remember(search, category) {
+        val needle = TextNormalizer.normalize(search)
+        ActionRegistry.byCategory()
+            .filterKeys { category == null || it == category }
+            .mapValues { (_, actions) ->
+                actions.filter { action ->
+                    needle.isEmpty() ||
+                        TextNormalizer.normalize(action.label).contains(needle) ||
+                        TextNormalizer.normalize(action.description).contains(needle)
+                }
+            }
+            .filterValues { it.isNotEmpty() }
     }
 
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        Text("Ajouter une action", style = MaterialTheme.typography.titleLarge)
-        OutlinedTextField(
+    Column(modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
+        // En-tête collé : titre, recherche, filtres. La grille défile en dessous, jamais dessus.
+        GlassSheetHeader(title = "Ajouter une action", subtitle = "${ActionRegistry.all.size} actions disponibles")
+        GlassTextField(
             value = search,
             onValueChange = { search = it },
-            label = { Text("Rechercher") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+            placeholder = "Rechercher : wifi, musique, minuteur…",
+            leadingIcon = Symbols.Search,
+            modifier = Modifier.padding(horizontal = NicoSpacing.gutter),
+            trailing = if (search.isNotEmpty()) {
+                {
+                    GlassIconButton(
+                        icon = Symbols.Close,
+                        contentDescription = "Effacer la recherche",
+                        onClick = { search = "" },
+                        tint = NicoColors.TextSecondary,
+                        iconSize = 18.dp
+                    )
+                }
+            } else {
+                null
+            }
         )
-        LazyColumn(modifier = Modifier.heightIn(max = 420.dp)) {
-            for ((category, actions) in grouped) {
-                item(key = "cat-${category.name}") {
-                    Text(
-                        text = category.label.uppercase(),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Monospace,
-                        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = NicoSpacing.gutter, vertical = NicoSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(NicoSpacing.xs)
+        ) {
+            item(key = "all") {
+                GlassChip(text = "Tout", selected = category == null, onClick = { category = null })
+            }
+            items(ActionCategory.entries.toList(), key = { it.name }) { entry ->
+                GlassChip(
+                    text = entry.label,
+                    selected = category == entry,
+                    accent = entry.color,
+                    onClick = { category = if (category == entry) null else entry }
+                )
+            }
+        }
+
+        if (grouped.isEmpty()) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(NicoSpacing.xxl),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Aucune action ne correspond", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Essaie un autre mot, ou retire le filtre.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = NicoColors.TextSecondary
+                )
+            }
+        }
+
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            contentPadding = PaddingValues(
+                start = NicoSpacing.md,
+                end = NicoSpacing.md,
+                top = NicoSpacing.xxs,
+                bottom = NicoSpacing.xxl
+            ),
+            horizontalArrangement = Arrangement.spacedBy(NicoSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(NicoSpacing.sm)
+        ) {
+            for ((cat, actions) in grouped) {
+                item(key = "cat-${cat.name}", span = { GridItemSpan(maxLineSpan) }) {
+                    SectionLabel(
+                        text = cat.label,
+                        color = cat.color,
+                        modifier = Modifier.padding(start = NicoSpacing.xxs, top = NicoSpacing.sm)
                     )
                 }
                 items(actions, key = { it.type.name }) { action ->
-                    val available = isBackendAvailable(action.backend)
-                    ActionRow(action, available) { if (available) onPick(action) }
+                    ActionTile(
+                        action = action,
+                        availability = availabilityOf(action, isBackendAvailable),
+                        onClick = { onPick(action) }
+                    )
                 }
+            }
+            item(key = "bottom-inset", span = { GridItemSpan(maxLineSpan) }) {
+                Spacer(modifier = Modifier.navigationBarsPadding())
             }
         }
     }
 }
 
+/**
+ * Tuile d'action : icône colorée, nom, description courte. Indisponible, elle est grisée,
+ * porte un badge qui dit pourquoi, et refuse le tap avec une vibration.
+ */
 @Composable
-private fun ActionRow(action: Action, available: Boolean, onClick: () -> Unit) {
+private fun ActionTile(action: Action, availability: Availability, onClick: () -> Unit) {
+    val haptics = rememberHaptics()
+    val interaction = remember { MutableInteractionSource() }
+    val blocked = availability == Availability.BLOCKED
+    val shape = RoundedCornerShape(NicoRadius.Tile)
+    val contentAlpha by animateFloatAsState(if (blocked) 0.45f else 1f, label = "tuile indisponible")
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = available, onClick = onClick)
-            .padding(vertical = 10.dp)
+            .heightIn(min = 148.dp)
+            .pressScale(interaction)
+            .glass(shape, fill = if (blocked) NicoColors.GlassFillSubtle else NicoColors.GlassFill)
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                role = Role.Button,
+                onClickLabel = if (blocked) null else "Choisir"
+            ) {
+                if (blocked) {
+                    haptics.reject()
+                } else {
+                    haptics.tick()
+                    onClick()
+                }
+            }
+            .padding(NicoSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
+        Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth()) {
+            ActionIconTile(type = action.type, dimmed = blocked)
+            Spacer(modifier = Modifier.weight(1f))
+            when (availability) {
+                Availability.BLOCKED -> StatusBadge(
+                    action.backend.displayName,
+                    color = NicoColors.Warning,
+                    icon = Symbols.LockFilled
+                )
+                Availability.FALLBACK -> StatusBadge("Repli", color = NicoColors.TextSecondary)
+                Availability.READY -> Unit
+            }
+        }
+        Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = action.label,
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (available) MaterialTheme.colorScheme.onSurface
-            else MaterialTheme.colorScheme.onSurfaceVariant
+            style = MaterialTheme.typography.titleSmall,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.alpha(contentAlpha)
         )
-        val subtitle = when {
-            !available -> "${action.backend} indisponible"
-            action.description.isNotBlank() -> action.description
-            else -> ""
+        val subtitle = when (availability) {
+            Availability.BLOCKED -> "Nécessite ${action.backend.displayName}"
+            else -> action.description
         }
         if (subtitle.isNotBlank()) {
-            Text(text = subtitle, style = MaterialTheme.typography.bodySmall)
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = NicoColors.TextSecondary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.alpha(contentAlpha)
+            )
         }
     }
 }
@@ -155,66 +334,101 @@ private fun ParamsStep(
     action: Action,
     spec: ActionSpec,
     availableSlots: List<String>,
+    isEditing: Boolean,
     onChange: (ActionSpec) -> Unit,
     onBack: () -> Unit,
     onConfirm: (ActionSpec) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .heightIn(max = 560.dp)
-            .verticalScroll(rememberScrollState())
-    ) {
-        Text(action.label, style = MaterialTheme.typography.titleLarge)
+    val complete = isComplete(action, spec)
 
-        for (param in action.paramsSchema) {
-            ParamField(
-                spec = param,
-                value = spec.params[param.key] ?: param.default.orEmpty(),
-                availableSlots = availableSlots,
-                onValueChange = { value ->
-                    onChange(spec.copy(params = spec.params + (param.key to value)))
+    Column(modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
+        GlassSheetHeader(
+            title = action.label,
+            subtitle = action.description.takeIf { it.isNotBlank() },
+            leading = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    GlassIconButton(
+                        icon = Symbols.ArrowBack,
+                        contentDescription = "Changer d'action",
+                        onClick = onBack,
+                        modifier = Modifier.padding(end = NicoSpacing.xxs)
+                    )
+                    ActionIconTile(type = action.type)
                 }
-            )
-        }
+            }
+        )
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = NicoSpacing.gutter)
+                .padding(bottom = NicoSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(NicoSpacing.md)
+        ) {
+            if (action.paramsSchema.isEmpty()) {
+                Text(
+                    "Cette action n'a rien à régler.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = NicoColors.TextSecondary
+                )
+            }
+            for (param in action.paramsSchema) {
+                ParamField(
+                    spec = param,
+                    value = spec.params[param.key] ?: param.default.orEmpty(),
+                    availableSlots = availableSlots,
+                    onValueChange = { value ->
+                        onChange(spec.copy(params = spec.params + (param.key to value)))
+                    }
+                )
+            }
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(
+            SectionLabel("Options avancées", icon = Symbols.Tune, modifier = Modifier.padding(top = NicoSpacing.sm))
+
+            GlassToggleRow(
+                title = "Action critique",
+                description = "Si elle échoue, la suite de la chaîne est abandonnée",
                 checked = spec.critical,
                 onCheckedChange = { onChange(spec.copy(critical = it)) }
             )
-            Column {
-                Text("Action critique", style = MaterialTheme.typography.bodyMedium)
-                Text(
-                    "Si elle échoue, la suite de la chaîne est abandonnée",
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
+
+            GlassTextField(
+                value = if (spec.delayMsBefore > 0) spec.delayMsBefore.toString() else "",
+                onValueChange = { value ->
+                    onChange(spec.copy(delayMsBefore = value.filter(Char::isDigit).toLongOrNull() ?: 0))
+                },
+                label = "Délai avant (ms)",
+                placeholder = "0",
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
         }
 
-        OutlinedTextField(
-            value = if (spec.delayMsBefore > 0) spec.delayMsBefore.toString() else "",
-            onValueChange = { value ->
-                onChange(spec.copy(delayMsBefore = value.toLongOrNull() ?: 0))
-            },
-            label = { Text("Délai avant (ms)") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-        )
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
+        // Boutons collés en bas de la feuille, au-dessus de la navigation gestuelle.
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .glass(RoundedCornerShape(0.dp), fill = NicoColors.GlassFillSubtle, border = null, sheen = false)
+                .navigationBarsPadding()
+                .padding(horizontal = NicoSpacing.gutter, vertical = NicoSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(NicoSpacing.xxs)
         ) {
-            TextButton(onClick = onBack) { Text("Changer d'action") }
-            Button(
+            if (!complete) {
+                Text(
+                    "Remplis les champs marqués *",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = NicoColors.TextTertiary,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
+            GlassButton(
+                text = if (isEditing) "Enregistrer l'action" else "Ajouter à la chaîne",
                 onClick = { onConfirm(requiredFilled(action, spec)) },
-                enabled = isComplete(action, spec)
-            ) { Text("Valider") }
+                enabled = complete,
+                icon = Symbols.Check,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -212,7 +213,8 @@ fun OptionRow(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    description: String? = null
+    description: String? = null,
+    leading: (@Composable () -> Unit)? = null
 ) {
     val haptics = rememberHaptics()
     val shape = RoundedCornerShape(NicoRadius.Field)
@@ -232,6 +234,10 @@ fun OptionRow(
             }
             .padding(horizontal = NicoSpacing.md, vertical = NicoSpacing.sm)
     ) {
+        if (leading != null) {
+            leading()
+            Spacer(modifier = Modifier.width(NicoSpacing.sm))
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text(label, style = MaterialTheme.typography.bodyLarge)
             if (description != null) {

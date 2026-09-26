@@ -14,6 +14,10 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,6 +30,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -441,6 +446,69 @@ fun GlassToggleRow(
     }
 }
 
+/**
+ * Choix exclusif entre quelques options (Activer / Désactiver / Basculer) : une piste de
+ * verre et une pastille qui glisse sur ressort vers l'option choisie.
+ */
+@Composable
+fun GlassSegmentedControl(
+    options: List<Pair<String, String>>,
+    selected: String?,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val haptics = rememberHaptics()
+    val selectedIndex = options.indexOfFirst { it.first.equals(selected, ignoreCase = true) }
+    val shape = RoundedCornerShape(NicoRadius.Field)
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 52.dp)
+            .glass(shape, fill = NicoColors.GlassFillSubtle)
+            .padding(4.dp)
+    ) {
+        val segment = maxWidth / options.size.coerceAtLeast(1)
+        val indicatorOffset by animateDpAsState(
+            targetValue = segment * selectedIndex.coerceAtLeast(0),
+            animationSpec = NicoMotion.bouncy(),
+            label = "segment"
+        )
+        if (selectedIndex >= 0) {
+            Box(
+                modifier = Modifier
+                    .offset(x = indicatorOffset)
+                    .width(segment)
+                    .height(44.dp)
+                    .glass(RoundedCornerShape(NicoRadius.Chip), fill = NicoColors.GlassFillRaised, border = GlassBrushes.SpecularBorderStrong)
+            )
+        }
+        Row(modifier = Modifier.fillMaxWidth().height(44.dp)) {
+            options.forEachIndexed { index, (value, label) ->
+                val isSelected = index == selectedIndex
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(NicoRadius.Chip))
+                        .selectable(selected = isSelected, role = Role.RadioButton) {
+                            haptics.tick()
+                            onSelect(value)
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (isSelected) NicoColors.TextPrimary else NicoColors.TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
 /** Curseur : piste de verre, remplissage rouge, valeur en mono à droite du libellé. */
 @Composable
 fun GlassSlider(
@@ -502,5 +570,10 @@ private fun GlassInputsPreview() {
             GlassSwitch(checked = false, onCheckedChange = {}, enabled = false)
         }
         GlassSlider(label = "Confiance", value = 0.82f, onValueChange = {}, valueRange = 0.5f..0.95f)
+        GlassSegmentedControl(
+            options = listOf("on" to "Activer", "off" to "Désactiver", "toggle" to "Basculer"),
+            selected = "on",
+            onSelect = {}
+        )
     }
 }
