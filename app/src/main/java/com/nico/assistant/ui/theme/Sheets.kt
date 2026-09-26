@@ -25,7 +25,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -118,9 +117,10 @@ fun GlassSheet(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     skipPartiallyExpanded: Boolean = true,
-    sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = skipPartiallyExpanded),
     content: @Composable ColumnScope.() -> Unit
 ) {
+    // État interne : l'exposer obligerait chaque appelant à accepter l'API expérimentale.
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = skipPartiallyExpanded)
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         modifier = modifier,
