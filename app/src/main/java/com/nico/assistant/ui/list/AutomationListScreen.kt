@@ -301,7 +301,13 @@ private fun SwipeableAutomationCard(
     SwipeToDismissBox(
         state = dismissState,
         enableDismissFromStartToEnd = false,
-        backgroundContent = { DeleteBackground(armed = armed) }
+        backgroundContent = {
+            // Les cartes sont translucides : le fond rouge ne doit exister que pendant le geste,
+            // sinon il transparaîtrait sous chaque carte au repos.
+            if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
+                DeleteBackground(armed = armed)
+            }
+        }
     ) {
         AutomationCard(automation, onClick, onToggle)
     }
